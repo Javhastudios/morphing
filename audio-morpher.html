@@ -13,246 +13,44 @@ body {
   min-height: 100vh;
   padding: 2rem;
 }
-
-.morpher {
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-h2 {
-  font-size: 22px;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  color: #fff;
-}
-
-.subtitle {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 2rem;
-}
-
-.samples-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 1.5rem;
-}
-
-.sample-card {
-  background: #1a1a1a;
-  border: 0.5px solid #333;
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  transition: border-color 0.2s;
-}
-
-.sample-card.loaded {
-  border-color: #555;
-}
-
-.sample-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.5rem;
-}
-
-.sample-name {
-  font-size: 14px;
-  color: #ccc;
-  margin-bottom: 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-height: 20px;
-}
-
-.sample-info {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 0.75rem;
-  min-height: 16px;
-}
-
-.waveform-container {
-  height: 52px;
-  border-radius: 8px;
-  background: #111;
-  border: 0.5px solid #2a2a2a;
-  margin-bottom: 0.75rem;
-  overflow: hidden;
-}
-
-canvas.waveform {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.upload-btn {
-  width: 100%;
-  padding: 7px 12px;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 8px;
-  border: 0.5px solid #444;
-  background: #222;
-  color: #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: background 0.15s;
-}
+.morpher { max-width: 720px; margin: 0 auto; }
+h2 { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; color: #fff; }
+.subtitle { font-size: 13px; color: #888; margin-bottom: 2rem; }
+.samples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+.sample-card { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1rem 1.25rem; transition: border-color 0.2s; }
+.sample-card.loaded { border-color: #555; }
+.sample-label { font-size: 11px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.sample-name { font-size: 14px; color: #ccc; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 20px; }
+.sample-info { font-size: 12px; color: #666; margin-bottom: 0.75rem; min-height: 16px; }
+.waveform-container { height: 52px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 0.75rem; overflow: hidden; }
+canvas.waveform { width: 100%; height: 100%; display: block; }
+.upload-btn { width: 100%; padding: 7px 12px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: #222; color: #ccc; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s; }
 .upload-btn:hover { background: #2a2a2a; color: #fff; }
-
 input[type="file"] { display: none; }
-
-.morph-section {
-  background: #1a1a1a;
-  border: 0.5px solid #333;
-  border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.morph-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.morph-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #aaa;
-}
-
-.morph-value {
-  font-size: 24px;
-  font-weight: 500;
-  color: #fff;
-}
-
-.morph-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 0.5rem;
-}
-
-input[type="range"].morph-slider {
-  width: 100%;
-  margin-bottom: 1.25rem;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  background: #333;
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-input[type="range"].morph-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  border: none;
-}
-input[type="range"].morph-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  border: none;
-}
-
-.result-waveform-container {
-  height: 60px;
-  border-radius: 8px;
-  background: #111;
-  border: 0.5px solid #2a2a2a;
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-
-.controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.btn {
-  padding: 8px 16px;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 8px;
-  border: 0.5px solid #444;
-  background: transparent;
-  color: #ccc;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s, transform 0.1s;
-  white-space: nowrap;
-}
+.morph-section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.morph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.morph-title { font-size: 14px; font-weight: 500; color: #aaa; }
+.morph-value { font-size: 24px; font-weight: 500; color: #fff; }
+.morph-labels { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 0.5rem; }
+input[type="range"].morph-slider { width: 100%; margin-bottom: 1.25rem; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+input[type="range"].morph-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+.result-waveform-container { height: 60px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 1rem; overflow: hidden; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { padding: 8px 16px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: transparent; color: #ccc; display: flex; align-items: center; gap: 6px; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
 .btn:hover { background: #222; color: #fff; }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.btn.primary {
-  background: #fff;
-  color: #111;
-  border-color: #fff;
-  font-weight: 500;
-}
+.btn.primary { background: #fff; color: #111; border-color: #fff; font-weight: 500; }
 .btn.primary:hover { background: #ddd; border-color: #ddd; }
 .btn.primary:disabled { background: transparent; color: #555; border-color: #444; }
-
-.btn.loop-on {
-  background: #1a3a2a;
-  color: #1D9E75;
-  border-color: #1D9E75;
-}
-
-.status {
-  font-size: 12px;
-  color: #666;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #444;
-  flex-shrink: 0;
-}
+.btn.loop-on { background: #1a3a2a; color: #1D9E75; border-color: #1D9E75; }
+.status { font-size: 12px; color: #666; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; }
 .dot.ready { background: #639922; }
 .dot.playing { background: #1D9E75; animation: pulse 1s ease-in-out infinite; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.hint {
-  font-size: 12px;
-  color: #555;
-  text-align: center;
-  padding: 0.5rem 0;
-}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.hint { font-size: 12px; color: #555; text-align: center; padding: 0.5rem 0; }
 </style>
 </head>
 <body>
@@ -265,25 +63,16 @@ input[type="range"].morph-slider::-moz-range-thumb {
       <div class="sample-label">Sample A</div>
       <div class="sample-name" id="name-a">sin cargar</div>
       <div class="sample-info" id="info-a">—</div>
-      <div class="waveform-container">
-        <canvas class="waveform" id="wave-a"></canvas>
-      </div>
-      <button class="upload-btn" onclick="document.getElementById('file-a').click()">
-        ↑ cargar sample A
-      </button>
+      <div class="waveform-container"><canvas class="waveform" id="wave-a"></canvas></div>
+      <button class="upload-btn" onclick="document.getElementById('file-a').click()">↑ cargar sample A</button>
       <input type="file" id="file-a" accept="audio/*" onchange="loadSample('a', this)">
     </div>
-
     <div class="sample-card" id="card-b">
       <div class="sample-label">Sample B</div>
       <div class="sample-name" id="name-b">sin cargar</div>
       <div class="sample-info" id="info-b">—</div>
-      <div class="waveform-container">
-        <canvas class="waveform" id="wave-b"></canvas>
-      </div>
-      <button class="upload-btn" onclick="document.getElementById('file-b').click()">
-        ↑ cargar sample B
-      </button>
+      <div class="waveform-container"><canvas class="waveform" id="wave-b"></canvas></div>
+      <button class="upload-btn" onclick="document.getElementById('file-b').click()">↑ cargar sample B</button>
       <input type="file" id="file-b" accept="audio/*" onchange="loadSample('b', this)">
     </div>
   </div>
@@ -299,68 +88,53 @@ input[type="range"].morph-slider::-moz-range-thumb {
       <span>B puro</span>
     </div>
     <input type="range" class="morph-slider" id="morph-slider" min="0" max="100" value="0" step="1" oninput="onMorphChange(this.value)">
-    <div class="result-waveform-container">
-      <canvas class="waveform" id="wave-result"></canvas>
-    </div>
+    <div class="result-waveform-container"><canvas class="waveform" id="wave-result"></canvas></div>
     <div class="controls">
-      <button class="btn primary" id="btn-play" onclick="playMorph()" disabled>
-        ▶ reproducir
-      </button>
-      <button class="btn" id="btn-stop" onclick="stopPlayback()" disabled>
-        ■ detener
-      </button>
-      <button class="btn" id="btn-loop" onclick="toggleLoop()">
-        ⟳ loop
-      </button>
+      <button class="btn primary" id="btn-play" onclick="playMorph()" disabled>▶ reproducir</button>
+      <button class="btn" id="btn-stop" onclick="stopPlayback()" disabled>■ detener</button>
+      <button class="btn" id="btn-loop" onclick="toggleLoop()">⟳ loop</button>
       <div class="status">
         <span class="dot" id="status-dot"></span>
         <span id="status-text">carga los dos samples para comenzar</span>
       </div>
     </div>
   </div>
-
-  <p class="hint">el morph se calcula en tiempo real — mueve el slider y luego reproduce</p>
+  <p class="hint">en modo loop, mueve el slider durante la reproducción para cambiar el morph en tiempo real</p>
 </div>
 
 <script>
-let ctx = null;
+let audioCtx = null;
+let workletNode = null;
+let workletReady = false;
 let samples = { a: null, b: null };
-let sourceNode = null;
 let morphPos = 0;
 let loopEnabled = false;
+let isPlaying = false;
 
-function getAudioContext() {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  return ctx;
+async function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.audioWorklet.addModule('morph-processor.js');
+    workletReady = true;
+  }
+  return audioCtx;
 }
 
 async function loadSample(id, input) {
   const file = input.files[0];
   if (!file) return;
-
   const nameEl = document.getElementById('name-' + id);
   const infoEl = document.getElementById('info-' + id);
   nameEl.textContent = 'cargando...';
-
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const audioCtx = getAudioContext();
-    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-
+    const ctx = await getAudioContext();
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
     const monoData = mergeToMono(decoded);
-
-    samples[id] = {
-      data: monoData,
-      sampleRate: decoded.sampleRate,
-      duration: decoded.duration
-    };
-
+    samples[id] = { data: monoData, sampleRate: decoded.sampleRate, duration: decoded.duration };
     nameEl.textContent = file.name;
-    const dur = decoded.duration.toFixed(2);
-    const sr = (decoded.sampleRate / 1000).toFixed(1);
-    infoEl.textContent = dur + 's · ' + sr + 'kHz · ' + decoded.numberOfChannels + 'ch → mono';
+    infoEl.textContent = decoded.duration.toFixed(2) + 's · ' + (decoded.sampleRate/1000).toFixed(1) + 'kHz · ' + decoded.numberOfChannels + 'ch → mono';
     document.getElementById('card-' + id).classList.add('loaded');
-
     drawWaveform('wave-' + id, monoData);
     checkReady();
   } catch(e) {
@@ -389,17 +163,13 @@ function drawWaveform(canvasId, data) {
   canvas.height = canvas.offsetHeight * dpr;
   const c = canvas.getContext('2d');
   c.scale(dpr, dpr);
-  const W = canvas.offsetWidth;
-  const H = canvas.offsetHeight;
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
   c.clearRect(0, 0, W, H);
-
   const step = Math.max(1, Math.floor(data.length / W));
   const midY = H / 2;
-
   c.beginPath();
   c.strokeStyle = '#666';
   c.lineWidth = 1;
-
   for (let x = 0; x < W; x++) {
     let min = 1, max = -1;
     const start = x * step;
@@ -411,21 +181,16 @@ function drawWaveform(canvasId, data) {
     const yTop = midY - max * midY * 0.9;
     const yBot = midY - min * midY * 0.9;
     if (x === 0) c.moveTo(x, yTop);
-    else {
-      c.lineTo(x, yTop);
-      c.lineTo(x, yBot);
-    }
+    else { c.lineTo(x, yTop); c.lineTo(x, yBot); }
   }
   c.stroke();
 }
 
-function computeMorph(pos) {
+function computeMorphPreview(pos) {
   const t = pos / 100;
-  const a = samples.a.data;
-  const b = samples.b.data;
+  const a = samples.a.data, b = samples.b.data;
   const len = Math.max(a.length, b.length);
   const result = new Float32Array(len);
-
   for (let i = 0; i < len; i++) {
     const va = i < a.length ? a[i] : 0;
     const vb = i < b.length ? b[i] : 0;
@@ -438,8 +203,10 @@ function onMorphChange(val) {
   morphPos = parseInt(val);
   document.getElementById('morph-display').textContent = morphPos + '%';
   if (samples.a && samples.b) {
-    const morphed = computeMorph(morphPos);
-    drawWaveform('wave-result', morphed);
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
+    if (workletNode) {
+      workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+    }
   }
 }
 
@@ -449,9 +216,56 @@ function checkReady() {
   if (ready) {
     document.getElementById('status-dot').className = 'dot ready';
     document.getElementById('status-text').textContent = 'listo';
-    const morphed = computeMorph(morphPos);
-    drawWaveform('wave-result', morphed);
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
   }
+}
+
+async function playMorph() {
+  if (!samples.a || !samples.b) return;
+  stopPlayback();
+
+  const ctx = await getAudioContext();
+  if (ctx.state === 'suspended') await ctx.resume();
+
+  workletNode = new AudioWorkletNode(ctx, 'morph-processor');
+
+  workletNode.port.postMessage({ type: 'samples', a: samples.a.data, b: samples.b.data });
+  workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+  workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
+  workletNode.port.postMessage({ type: 'play' });
+
+  workletNode.port.onmessage = (e) => {
+    if (e.data.type === 'ended') {
+      setStoppedUI();
+    }
+  };
+
+  workletNode.connect(ctx.destination);
+  isPlaying = true;
+
+  document.getElementById('status-dot').className = 'dot playing';
+  document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
+  document.getElementById('btn-stop').disabled = false;
+  document.getElementById('btn-play').disabled = true;
+}
+
+function stopPlayback() {
+  if (workletNode) {
+    workletNode.port.postMessage({ type: 'stop' });
+    workletNode.disconnect();
+    workletNode = null;
+  }
+  isPlaying = false;
+  setStoppedUI();
+}
+
+function setStoppedUI() {
+  const ready = samples.a && samples.b;
+  document.getElementById('status-dot').className = ready ? 'dot ready' : 'dot';
+  document.getElementById('status-text').textContent = ready ? 'listo' : 'carga los dos samples para comenzar';
+  document.getElementById('btn-stop').disabled = true;
+  document.getElementById('btn-play').disabled = !ready;
+  isPlaying = false;
 }
 
 function toggleLoop() {
@@ -464,61 +278,16 @@ function toggleLoop() {
     btn.classList.remove('loop-on');
     btn.textContent = '⟳ loop';
   }
-}
-
-function playMorph() {
-  if (!samples.a || !samples.b) return;
-  stopPlayback();
-
-  const audioCtx = getAudioContext();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-
-  const morphed = computeMorph(morphPos);
-  const sampleRate = samples.a.sampleRate;
-
-  const buffer = audioCtx.createBuffer(1, morphed.length, sampleRate);
-  buffer.copyToChannel(morphed, 0);
-
-  sourceNode = audioCtx.createBufferSource();
-  sourceNode.buffer = buffer;
-  sourceNode.loop = loopEnabled;
-  sourceNode.connect(audioCtx.destination);
-  sourceNode.start();
-
-  document.getElementById('status-dot').className = 'dot playing';
-  document.getElementById('status-text').textContent = 'reproduciendo...';
-  document.getElementById('btn-stop').disabled = false;
-  document.getElementById('btn-play').disabled = true;
-
-  sourceNode.onended = () => {
-    if (loopEnabled) return;
-    document.getElementById('status-dot').className = 'dot ready';
-    document.getElementById('status-text').textContent = 'listo';
-    document.getElementById('btn-stop').disabled = true;
-    document.getElementById('btn-play').disabled = false;
-    sourceNode = null;
-  };
-}
-
-function stopPlayback() {
-  if (sourceNode) {
-    try { sourceNode.stop(); } catch(e) {}
-    sourceNode = null;
+  if (workletNode) {
+    workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
+    document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
   }
-  const ready = samples.a && samples.b;
-  document.getElementById('status-dot').className = ready ? 'dot ready' : 'dot';
-  document.getElementById('status-text').textContent = ready ? 'listo' : 'carga los dos samples para comenzar';
-  document.getElementById('btn-stop').disabled = true;
-  if (ready) document.getElementById('btn-play').disabled = false;
 }
 
 window.addEventListener('resize', () => {
   if (samples.a) drawWaveform('wave-a', samples.a.data);
   if (samples.b) drawWaveform('wave-b', samples.b.data);
-  if (samples.a && samples.b) {
-    const morphed = computeMorph(morphPos);
-    drawWaveform('wave-result', morphed);
-  }
+  if (samples.a && samples.b) drawWaveform('wave-result', computeMorphPreview(morphPos));
 });
 </script>
 </body>
