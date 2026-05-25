@@ -160,6 +160,7 @@ canvas.lfo-canvas { width: 100%; height: 100%; display: block; }
       <button class="btn" id="btn-lfo-ab" onclick="setLfoMode('ab')">A → B</button>
       <button class="btn active" id="btn-lfo-ping" onclick="setLfoMode('ping')">A ⇄ B</button>
       <button class="btn" id="btn-lfo-ba" onclick="setLfoMode('ba')">B → A</button>
+      <button class="btn" id="btn-lfo-pong" onclick="setLfoMode('pong')">B ⇄ A</button>
     </div>
 
     <div class="row">
@@ -577,7 +578,7 @@ document.getElementById('lfo-slider').addEventListener('input', function() { set
 
 function setLfoMode(mode) {
   lfoMode = mode;
-  ['ab','ping','ba'].forEach(m => document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode));
+  ['ab','ping','ba','pong'].forEach(m => document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode));
   if (lfoActive) { lfoPhase = 0; lfoDirection = 1; }
   drawLfoViz();
 }
@@ -596,6 +597,7 @@ function toggleLfo() {
     btn.classList.add('lfo-on');
     if (lfoMode === 'ab')        { lfoPhase = 0; lfoDirection = 1; }
     else if (lfoMode === 'ba')   { lfoPhase = 1; lfoDirection = -1; }
+    else if (lfoMode === 'pong') { lfoPhase = 1; lfoDirection = -1; }
     else /* ping */              { lfoPhase = 0; lfoDirection = 1; }
     lfoLastTime = null;
     if (!workletNode) playMorph();
@@ -619,7 +621,11 @@ function lfoTick(ts) {
   if (lfoMode === 'ping') {
     lfoPhase += step * lfoDirection;
     if (lfoPhase >= 1) { lfoPhase = 1; lfoDirection = -1; }
+    if (lfoPhase <= 0 && lfoDirection === -1) { lfoPhase = 0; lfoActive = false; stopLfoUI(); }
+  } else if (lfoMode === 'pong') {
+    lfoPhase += step * lfoDirection;
     if (lfoPhase <= 0) { lfoPhase = 0; lfoDirection = 1; }
+    if (lfoPhase >= 1 && lfoDirection === 1) { lfoPhase = 1; lfoActive = false; stopLfoUI(); }
   } else if (lfoMode === 'ab') {
     lfoPhase += step;
     if (lfoPhase >= 1) { lfoPhase = 1; lfoActive = false; stopLfoUI(); }
@@ -633,11 +639,14 @@ function lfoTick(ts) {
     envPos = applyEnvelope(lfoPhase);
   } else if (lfoMode === 'ba') {
     envPos = 1 - applyEnvelope(1 - lfoPhase);
-  } else {
-    // ping-pong: 0→1 on the way up, 1→0 on the way down
+  } else if (lfoMode === 'ping') {
     envPos = lfoDirection > 0
       ? applyEnvelope(lfoPhase)
       : 1 - applyEnvelope(1 - lfoPhase);
+  } else { // pong: starts at 1, goes to 0, returns to 1
+    envPos = lfoDirection < 0
+      ? 1 - applyEnvelope(1 - lfoPhase)
+      : applyEnvelope(lfoPhase);
   }
   const newPos = Math.round(envPos * 100);
   if (newPos !== morphPos) setMorphPos(newPos);
