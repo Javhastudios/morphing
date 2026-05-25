@@ -5,7 +5,6 @@ class MorphProcessor extends AudioWorkletProcessor {
     this.samplesB = null;
     this.morphTarget = 0;
     this.morphSmooth = 0;
-    this.slewRate = 0.0001;
     this.pos = 0;
     this.loop = false;
     this.playing = false;
@@ -17,9 +16,14 @@ class MorphProcessor extends AudioWorkletProcessor {
         this.samplesB = d.b;
         this.pos = 0;
         this.playing = false;
+        this.morphSmooth = this.morphTarget;
       }
       if (d.type === 'morph') this.morphTarget = d.value;
-      if (d.type === 'play') { this.pos = 0; this.playing = true; }
+      if (d.type === 'play') {
+        this.morphSmooth = this.morphTarget;
+        this.pos = 0;
+        this.playing = true;
+      }
       if (d.type === 'stop') { this.playing = false; this.pos = 0; }
       if (d.type === 'loop') this.loop = d.value;
     };
@@ -43,12 +47,14 @@ class MorphProcessor extends AudioWorkletProcessor {
 
     const lenA = this.samplesA.length;
     const lenB = this.samplesB.length;
+    const smoothTime = 0.15;
+    const coeff = 1 - Math.exp(-1 / (sampleRate * smoothTime));
 
     for (let i = 0; i < out.length; i++) {
-      this.morphSmooth += (this.morphTarget - this.morphSmooth) * this.slewRate;
+      this.morphSmooth += (this.morphTarget - this.morphSmooth) * coeff;
       const t = this.morphSmooth;
 
-      const targetLen = lenA * (1 - t) + lenB * t;
+      const targetLen = Math.round(lenA * (1 - t) + lenB * t);
 
       if (this.pos >= targetLen) {
         if (this.loop) {
