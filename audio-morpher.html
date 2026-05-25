@@ -50,6 +50,19 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
 .dot.playing { background: #1D9E75; animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .hint { font-size: 12px; color: #555; text-align: center; padding: 0.5rem 0; }
+.lfo-section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.lfo-header { font-size: 14px; font-weight: 500; color: #aaa; margin-bottom: 1rem; }
+.lfo-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.lfo-speed { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+.lfo-inputs { display: flex; align-items: center; gap: 6px; }
+.lfo-input { width: 72px; padding: 6px 8px; font-size: 13px; background: #111; border: 0.5px solid #444; border-radius: 8px; color: #e8e8e8; outline: none; text-align: right; }
+.lfo-input:focus { border-color: #666; }
+.lfo-unit { font-size: 12px; color: #555; min-width: 28px; }
+.lfo-sep { font-size: 12px; color: #333; }
+input[type="range"].lfo-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+input[type="range"].lfo-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+.btn.lfo-on { background: #2a1a3a; color: #a07ad0; border-color: #7a50b0; }
 </style>
 </head>
 <body>
@@ -113,6 +126,32 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
     </div>
   </div>
   <p class="hint" id="hint-text">la duración se interpola con el morph — ambos samples se estiran simétricamente</p>
+
+  <div class="lfo-section">
+    <div class="lfo-header">barrido automático del crossfade</div>
+    <div class="lfo-row">
+      <span class="mode-label">modo:</span>
+      <button class="btn" id="btn-lfo-ab" onclick="setLfoMode('ab')">A → B</button>
+      <button class="btn active" id="btn-lfo-ping" onclick="setLfoMode('ping')">A ⇄ B</button>
+      <button class="btn" id="btn-lfo-ba" onclick="setLfoMode('ba')">B → A</button>
+    </div>
+    <div class="lfo-row">
+      <span class="mode-label">velocidad:</span>
+      <div class="lfo-inputs">
+        <input class="lfo-input" id="lfo-hz" type="number" min="0.01" max="20" step="0.01" value="0.50">
+        <span class="lfo-unit">Hz</span>
+        <span class="lfo-sep">·</span>
+        <input class="lfo-input" id="lfo-bpm" type="number" min="0.6" max="1200" step="0.1" value="30.0">
+        <span class="lfo-unit">BPM</span>
+      </div>
+    </div>
+    <div class="lfo-row">
+      <input type="range" class="lfo-slider" id="lfo-slider" min="-3" max="1.301" step="0.001" value="-0.301">
+    </div>
+    <div class="controls" style="margin-top:0.25rem;">
+      <button class="btn" id="btn-lfo-toggle" onclick="toggleLfo()">▶ iniciar barrido</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -381,6 +420,104 @@ function toggleLoop() {
     workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
     document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
   }
+}
+
+
+let lfoActive = false;
+let lfoMode = 'ping';
+let lfoHz = 0.5;
+let lfoPhase = 0;
+let lfoRafId = null;
+let lfoLastTime = null;
+let lfoDirection = 1;
+
+function hzToBpm(hz) { return hz * 60; }
+function bpmToHz(bpm) { return bpm / 60; }
+
+function setLfoHz(hz) {
+  lfoHz = Math.max(0.01, Math.min(20, hz));
+  document.getElementById('lfo-hz').value = lfoHz.toFixed(2);
+  document.getElementById('lfo-bpm').value = hzToBpm(lfoHz).toFixed(1);
+  const log = Math.log10(lfoHz);
+  document.getElementById('lfo-slider').value = log.toFixed(3);
+}
+
+document.getElementById('lfo-hz').addEventListener('change', function() {
+  setLfoHz(parseFloat(this.value) || 0.5);
+});
+document.getElementById('lfo-bpm').addEventListener('change', function() {
+  setLfoHz(bpmToHz(parseFloat(this.value) || 30));
+});
+document.getElementById('lfo-slider').addEventListener('input', function() {
+  setLfoHz(Math.pow(10, parseFloat(this.value)));
+});
+
+function setLfoMode(mode) {
+  lfoMode = mode;
+  ['ab','ping','ba'].forEach(m => {
+    document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode);
+  });
+  if (lfoActive) { lfoPhase = 0; lfoDirection = 1; }
+}
+
+function toggleLfo() {
+  lfoActive = !lfoActive;
+  const btn = document.getElementById('btn-lfo-toggle');
+  if (lfoActive) {
+    btn.textContent = '■ detener barrido';
+    btn.classList.add('lfo-on');
+    lfoPhase = morphPos / 100;
+    lfoDirection = 1;
+    lfoLastTime = null;
+    lfoRafId = requestAnimationFrame(lfoTick);
+  } else {
+    btn.textContent = '▶ iniciar barrido';
+    btn.classList.remove('lfo-on');
+    if (lfoRafId) cancelAnimationFrame(lfoRafId);
+    lfoRafId = null;
+  }
+}
+
+function lfoTick(ts) {
+  if (!lfoActive) return;
+  if (lfoLastTime === null) lfoLastTime = ts;
+  const dt = (ts - lfoLastTime) / 1000;
+  lfoLastTime = ts;
+
+  const step = lfoHz * dt;
+
+  if (lfoMode === 'ping') {
+    lfoPhase += step * lfoDirection;
+    if (lfoPhase >= 1) { lfoPhase = 1; lfoDirection = -1; }
+    if (lfoPhase <= 0) { lfoPhase = 0; lfoDirection = 1; }
+  } else if (lfoMode === 'ab') {
+    lfoPhase += step;
+    if (lfoPhase >= 1) { lfoPhase = 1; lfoActive = false; toggleLfoOff(); return; }
+  } else if (lfoMode === 'ba') {
+    lfoPhase -= step;
+    if (lfoPhase <= 0) { lfoPhase = 0; lfoActive = false; toggleLfoOff(); return; }
+  }
+
+  const newPos = Math.round(lfoPhase * 100);
+  if (newPos !== morphPos) {
+    morphPos = newPos;
+    document.getElementById('morph-slider').value = morphPos;
+    document.getElementById('morph-display').textContent = morphPos + '%';
+    if (samples.a && samples.b) {
+      updateDurationDisplay(morphPos);
+      drawWaveform('wave-result', computeMorphPreview(morphPos));
+      if (workletNode) workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+    }
+  }
+
+  lfoRafId = requestAnimationFrame(lfoTick);
+}
+
+function toggleLfoOff() {
+  const btn = document.getElementById('btn-lfo-toggle');
+  btn.textContent = '▶ iniciar barrido';
+  btn.classList.remove('lfo-on');
+  lfoRafId = null;
 }
 
 window.addEventListener('resize', () => {
