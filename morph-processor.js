@@ -21,7 +21,7 @@ class MorphProcessor extends AudioWorkletProcessor {
         this.stereo = d.stereo;
         this.pos = 0;
         this.playing = false;
-        this.morphSmooth = this.morphTarget;
+        this.morphSmooth = this.morphTarget; // respect already-set target
       }
       if (d.type === 'morph') this.morphTarget = d.value;
       if (d.type === 'gainA') this.gainA = d.value;

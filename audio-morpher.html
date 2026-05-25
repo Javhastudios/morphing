@@ -506,9 +506,9 @@ async function playMorph() {
 
   const prep = prepareSamples();
   workletNode = new AudioWorkletNode(ctx, 'morph-processor', { outputChannelCount: [2] });
+  workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
   workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b, stereo: true });
   workletNode.port.postMessage({ type: 'durationMode', value: durationMode });
-  workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
   workletNode.port.postMessage({ type: 'gainA', value: gainA });
   workletNode.port.postMessage({ type: 'gainB', value: gainB });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
@@ -654,10 +654,18 @@ async function toggleLfo() {
     else if (lfoMode === 'ba')   { lfoPhase = 1; lfoDirection = -1; }
     else if (lfoMode === 'pong') { lfoPhase = 1; lfoDirection = -1; }
     else /* ping */              { lfoPhase = 0; lfoDirection = 1; }
+
+    // determine start position and snap crossfade there
+    const startPos = (lfoMode === 'ba' || lfoMode === 'pong') ? 1 : 0;
+    setMorphPos(startPos * 100);
+
     lfoLastTime = null;
     if (!workletNode) {
-      await playMorph();
+      await playMorph(); // playMorph reads morphPos which is already snapped
     } else {
+      // force morphSmooth to start value instantly via play message
+      workletNode.port.postMessage({ type: 'morph', value: startPos });
+      await new Promise(r => setTimeout(r, 200)); // wait for smoothing to settle
       workletNode.port.postMessage({ type: 'play' });
     }
     lfoRafId = requestAnimationFrame(lfoTick);
