@@ -508,7 +508,7 @@ async function playMorph() {
   workletNode = new AudioWorkletNode(ctx, 'morph-processor', { outputChannelCount: [2] });
   workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b, stereo: true });
   workletNode.port.postMessage({ type: 'durationMode', value: durationMode });
-  workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+  workletNode.port.postMessage({ type: 'snap', value: morphPos / 100 });
   workletNode.port.postMessage({ type: 'gainA', value: gainA });
   workletNode.port.postMessage({ type: 'gainB', value: gainB });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
@@ -616,7 +616,9 @@ function syncLfoToSample() {
   );
   if (dur <= 0) return;
   const isPingPong = lfoMode === 'ping' || lfoMode === 'pong';
-  const hz = 1 / (isPingPong ? dur * 2 : dur);
+  // add 2% margin so the sweep comfortably reaches the endpoint
+  const effectiveDur = dur * 1.02;
+  const hz = 1 / (isPingPong ? effectiveDur * 2 : effectiveDur);
   setLfoHz(hz);
 }
 
@@ -658,6 +660,10 @@ async function toggleLfo() {
     if (!workletNode) {
       await playMorph();
     } else {
+      // snap to starting position without smoothing
+      const startPos = lfoMode === 'ba' || lfoMode === 'pong' ? 100 : 0;
+      setMorphPos(startPos);
+      workletNode.port.postMessage({ type: 'snap', value: startPos / 100 });
       workletNode.port.postMessage({ type: 'play' });
     }
     lfoRafId = requestAnimationFrame(lfoTick);
