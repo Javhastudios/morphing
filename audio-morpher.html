@@ -658,25 +658,12 @@ async function toggleLfo() {
   if (lfoActive) {
     btn.textContent = '■ detener barrido';
     btn.classList.add('lfo-on');
-    if (lfoMode === 'ab')        { lfoPhase = 0; lfoDirection = 1; }
-    else if (lfoMode === 'ba')   { lfoPhase = 1; lfoDirection = -1; }
-    else if (lfoMode === 'pong') { lfoPhase = 1; lfoDirection = -1; }
-    else /* ping */              { lfoPhase = 0; lfoDirection = 1; }
-
-    // determine start position and snap crossfade there
-    const startPos = (lfoMode === 'ba' || lfoMode === 'pong') ? 1 : 0;
-    setMorphPos(startPos * 100);
-
-    lfoLastTime = null;
     lfoElapsed = 0;
-    if (!workletNode) {
-      await playMorph();
-    } else {
-      workletNode.port.postMessage({ type: 'morph', value: startPos });
-      await new Promise(r => setTimeout(r, 200));
-      workletNode.port.postMessage({ type: 'play' });
-    }
-    if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: 0 });
+    lfoLastTime = null;
+    lfoPhase = 0;
+    const startPos = lfoMode === 'ba' ? 100 : 0;
+    setMorphPos(startPos);
+    if (!workletNode) await playMorph();
     lfoRafId = requestAnimationFrame(lfoTick);
   } else {
     btn.textContent = '▶ iniciar barrido';
@@ -694,25 +681,20 @@ function lfoTick(ts) {
   lfoElapsed += dt;
 
   const dur = getLfoDuration();
-  const baseDur = getLfoBaseDuration() / lfoSpeedMult;
 
-  // single direction modes: elapsed goes from 0 to baseDur/2
-  // ping-pong modes: elapsed goes from 0 to baseDur (full cycle)
-  let phase, done = false;
-
-  if (lfoMode === 'ab') {
-    phase = Math.min(lfoElapsed / dur, 1);
-    if (lfoElapsed >= dur) { phase = 1; done = true; }
-    lfoPhase = phase;
-    setMorphPos(done ? 100 : Math.round(applyEnvelope(phase) * 100));
-  } else { // ba
-    phase = Math.min(lfoElapsed / dur, 1);
-    if (lfoElapsed >= dur) { phase = 1; done = true; }
-    lfoPhase = phase;
-    setMorphPos(done ? 0 : Math.round((1 - applyEnvelope(phase)) * 100));
+  if (lfoElapsed >= dur) {
+    setMorphPos(lfoMode === 'ba' ? 0 : 100);
+    lfoActive = false;
+    stopLfoUI();
+    return;
   }
 
-  if (done) { lfoActive = false; stopLfoUI(); return; }
+  const phase = lfoElapsed / dur;
+  lfoPhase = phase;
+  const pos = lfoMode === 'ba'
+    ? Math.round((1 - applyEnvelope(phase)) * 100)
+    : Math.round(applyEnvelope(phase) * 100);
+  setMorphPos(pos);
 
   drawLfoViz();
   lfoRafId = requestAnimationFrame(lfoTick);
@@ -722,7 +704,6 @@ function stopLfoUI() {
   document.getElementById('btn-lfo-toggle').textContent = '▶ iniciar barrido';
   document.getElementById('btn-lfo-toggle').classList.remove('lfo-on');
   lfoRafId = null;
-  if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: 0.15 });
   drawLfoViz();
 }
 
