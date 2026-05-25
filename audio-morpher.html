@@ -1003,6 +1003,9 @@ async function toggleAdsr() {
   document.getElementById('btn-adsr-toggle').textContent = '■ detener envolvente';
   document.getElementById('btn-adsr-toggle').classList.add('lfo-on');
   document.getElementById('adsr-phase-label').textContent = '0.00s';
+  // set crossfade to first point before playing
+  const firstV = getEnvValueAt(0);
+  setMorphPos(Math.round(firstV * 100));
   if (!workletNode) await playMorph();
   adsrRafId = requestAnimationFrame(adsrTick);
 }
