@@ -22,6 +22,8 @@ canvas.waveform { width: 100%; height: 100%; display: block; }
 .upload-btn:hover { background: #2a2a2a; color: #fff; }
 input[type="file"] { display: none; }
 .morph-section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.mode-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 0.5px solid #2a2a2a; flex-wrap: wrap; }
+.mode-label { font-size: 12px; color: #555; margin-right: 2px; }
 .morph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .morph-title { font-size: 14px; font-weight: 500; color: #aaa; }
 .morph-values { display: flex; align-items: baseline; gap: 10px; }
@@ -40,6 +42,7 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
 .btn.primary { background: #fff; color: #111; border-color: #fff; font-weight: 500; }
 .btn.primary:hover { background: #ddd; border-color: #ddd; }
 .btn.primary:disabled { background: transparent; color: #555; border-color: #444; }
+.btn.active { background: #1a2a3a; color: #5aa0d0; border-color: #5aa0d0; }
 .btn.loop-on { background: #1a3a2a; color: #1D9E75; border-color: #1D9E75; }
 .status { font-size: 12px; color: #666; margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; }
@@ -74,6 +77,12 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
   </div>
 
   <div class="morph-section">
+    <div class="mode-bar">
+      <span class="mode-label">duración:</span>
+      <button class="btn" id="btn-mode-pad" onclick="setDurationMode('pad')">⬜ ceros</button>
+      <button class="btn" id="btn-mode-stretch" onclick="setDurationMode('stretch')">⇔ stretch fijo</button>
+      <button class="btn active" id="btn-mode-morph" onclick="setDurationMode('morph')">∿ morph</button>
+    </div>
     <div class="morph-header">
       <span class="morph-title">posición del morph</span>
       <div class="morph-values">
@@ -98,7 +107,7 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
       </div>
     </div>
   </div>
-  <p class="hint">la duración del resultado se interpola junto con el morph — ambos samples se estiran simétricamente</p>
+  <p class="hint" id="hint-text">la duración se interpola con el morph — ambos samples se estiran simétricamente</p>
 </div>
 
 <script>
@@ -107,6 +116,13 @@ let workletNode = null;
 let samples = { a: null, b: null };
 let morphPos = 0;
 let loopEnabled = false;
+let durationMode = 'morph';
+
+const hints = {
+  pad:     'el sample más corto se rellena con silencio hasta la duración del más largo',
+  stretch: 'ambos samples se estiran a la duración del más largo — longitud fija',
+  morph:   'la duración se interpola con el morph — ambos samples se estiran simétricamente'
+};
 
 async function getAudioContext() {
   if (!audioCtx) {
@@ -131,30 +147,55 @@ function stretchTo(data, targetLen) {
   return result;
 }
 
+function prepareSamples() {
+  if (!samples.a || !samples.b) return null;
+  const lenA = samples.a.data.length;
+  const lenB = samples.b.data.length;
+
+  if (durationMode === 'morph') {
+    return { a: samples.a.data, b: samples.b.data };
+  }
+
+  const targetLen = Math.max(lenA, lenB);
+
+  if (durationMode === 'stretch') {
+    return {
+      a: stretchTo(samples.a.data, targetLen),
+      b: stretchTo(samples.b.data, targetLen)
+    };
+  }
+
+  // pad
+  const a = new Float32Array(targetLen);
+  const b = new Float32Array(targetLen);
+  a.set(samples.a.data);
+  b.set(samples.b.data);
+  return { a, b };
+}
+
 function interpolatedLength(t) {
   if (!samples.a || !samples.b) return 0;
-  return Math.round(samples.a.data.length * (1 - t) + samples.b.data.length * t);
-}
-
-function computeMorphPreview(pos) {
-  if (!samples.a || !samples.b) return new Float32Array(0);
-  const t = pos / 100;
-  const targetLen = interpolatedLength(t);
-  const a = stretchTo(samples.a.data, targetLen);
-  const b = stretchTo(samples.b.data, targetLen);
-  const result = new Float32Array(targetLen);
-  for (let i = 0; i < targetLen; i++) {
-    result[i] = a[i] * (1 - t) + b[i] * t;
+  if (durationMode === 'morph') {
+    return Math.round(samples.a.data.length * (1 - t) + samples.b.data.length * t);
   }
-  return result;
+  return Math.max(samples.a.data.length, samples.b.data.length);
 }
 
-function updateDurationDisplay(pos) {
-  if (!samples.a || !samples.b) return;
-  const t = pos / 100;
-  const sr = samples.a.sampleRate;
-  const dur = interpolatedLength(t) / sr;
-  document.getElementById('morph-dur').textContent = dur.toFixed(2) + 's';
+function setDurationMode(mode) {
+  durationMode = mode;
+  ['pad', 'stretch', 'morph'].forEach(m => {
+    document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode);
+  });
+  document.getElementById('hint-text').textContent = hints[mode];
+  if (samples.a && samples.b) {
+    updateDurationDisplay(morphPos);
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
+  }
+  if (workletNode) {
+    const prep = prepareSamples();
+    workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
+    workletNode.port.postMessage({ type: 'durationMode', value: mode });
+  }
 }
 
 async function loadSample(id, input) {
@@ -222,6 +263,28 @@ function drawWaveform(canvasId, data) {
   c.stroke();
 }
 
+function computeMorphPreview(pos) {
+  if (!samples.a || !samples.b) return new Float32Array(0);
+  const t = pos / 100;
+  const targetLen = interpolatedLength(t);
+  const prep = prepareSamples();
+  const a = durationMode === 'morph' ? stretchTo(prep.a, targetLen) : prep.a;
+  const b = durationMode === 'morph' ? stretchTo(prep.b, targetLen) : prep.b;
+  const result = new Float32Array(targetLen);
+  for (let i = 0; i < targetLen; i++) {
+    result[i] = a[i] * (1 - t) + b[i] * t;
+  }
+  return result;
+}
+
+function updateDurationDisplay(pos) {
+  if (!samples.a || !samples.b) return;
+  const t = pos / 100;
+  const sr = samples.a.sampleRate;
+  const dur = interpolatedLength(t) / sr;
+  document.getElementById('morph-dur').textContent = dur.toFixed(2) + 's';
+}
+
 function onMorphChange(val) {
   morphPos = parseInt(val);
   document.getElementById('morph-display').textContent = morphPos + '%';
@@ -249,8 +312,10 @@ async function playMorph() {
   const ctx = await getAudioContext();
   if (ctx.state === 'suspended') await ctx.resume();
 
+  const prep = prepareSamples();
   workletNode = new AudioWorkletNode(ctx, 'morph-processor');
-  workletNode.port.postMessage({ type: 'samples', a: samples.a.data, b: samples.b.data });
+  workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
+  workletNode.port.postMessage({ type: 'durationMode', value: durationMode });
   workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
   workletNode.port.postMessage({ type: 'play' });
