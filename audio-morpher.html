@@ -184,13 +184,11 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
 
     <div class="row">
       <span class="lbl">velocidad:</span>
-      <input class="lfo-input" id="lfo-hz" type="number" min="0.01" max="20" step="0.01" value="0.50">
-      <span class="lfo-unit">Hz</span>
-      <span class="lfo-unit" style="color:#333">·</span>
-      <input class="lfo-input" id="lfo-bpm" type="number" min="0.6" max="1200" step="0.1" value="30.0">
-      <span class="lfo-unit">BPM</span>
-      <input type="range" class="lfo-slider" id="lfo-slider" min="-2" max="1.301" step="0.001" value="-0.301">
-      <button class="btn" id="btn-lfo-sync" onclick="syncLfoToSample()" title="sincronizar al sample más largo">⇥ sync</button>
+      <span class="lfo-unit" style="min-width:28px;">0.5x</span>
+      <input type="range" class="lfo-slider" id="lfo-slider" min="-1" max="1" step="0.001" value="0">
+      <span class="lfo-unit" style="min-width:28px;">2x</span>
+      <span class="lfo-unit" id="lfo-speed-display" style="min-width:48px; color:#ccc;">1.00x</span>
+      <button class="btn" id="btn-lfo-sync" onclick="syncLfoToSample()">⇥ sync</button>
     </div>
 
     <div class="row">
@@ -241,12 +239,13 @@ let stereoMode = false;
 // LFO
 let lfoActive = false;
 let lfoMode = 'ping';
-let lfoHz = 0.5;
+let lfoSpeedMult = 1.0; // 1.0 = synced to sample, 2.0 = double speed, 0.5 = half speed
 let lfoPhase = 0;
 let lfoDirection = 1;
 let lfoRafId = null;
 let lfoLastTime = null;
 let lfoEnvelope = 'linear';
+let lfoElapsed = 0;
 
 // Recording
 let mediaRecorder = null;
@@ -608,28 +607,39 @@ function drawLfoViz() {
   }
 }
 
-function syncLfoToSample() {
-  if (!samples.a && !samples.b) return;
+function getLfoBaseDuration() {
+  if (!samples.a && !samples.b) return 2;
   const dur = Math.max(
     samples.a ? samples.a.duration : 0,
     samples.b ? samples.b.duration : 0
   );
-  if (dur <= 0) return;
   const isPingPong = lfoMode === 'ping' || lfoMode === 'pong';
-  const hz = 1 / (isPingPong ? dur * 2 : dur);
-  setLfoHz(hz);
+  return isPingPong ? dur * 2 : dur;
 }
 
-function setLfoHz(hz) {
-  lfoHz = Math.max(0.01, Math.min(20, hz));
-  document.getElementById('lfo-hz').value = lfoHz.toFixed(2);
-  document.getElementById('lfo-bpm').value = (lfoHz * 60).toFixed(1);
-  document.getElementById('lfo-slider').value = Math.log10(lfoHz).toFixed(3);
+function getLfoDuration() {
+  return getLfoBaseDuration() / lfoSpeedMult;
 }
 
-document.getElementById('lfo-hz').addEventListener('change', function() { setLfoHz(parseFloat(this.value) || 0.5); });
-document.getElementById('lfo-bpm').addEventListener('change', function() { setLfoHz((parseFloat(this.value) || 30) / 60); });
-document.getElementById('lfo-slider').addEventListener('input', function() { setLfoHz(Math.pow(10, parseFloat(this.value))); });
+function setLfoSpeedMult(mult) {
+  lfoSpeedMult = Math.max(0.5, Math.min(2, mult));
+  document.getElementById('lfo-speed-display').textContent = lfoSpeedMult.toFixed(2) + 'x';
+  document.getElementById('lfo-slider').value = (lfoSpeedMult - 1).toFixed(3); // -1 to 1 range maps 0.5x-2x
+  drawLfoViz();
+}
+
+function syncLfoToSample() {
+  setLfoSpeedMult(1.0);
+}
+
+document.getElementById('lfo-slider').addEventListener('input', function() {
+  // slider -1 to 1 → speed 0.5x to 2x (linear)
+  const v = parseFloat(this.value);
+  const mult = v >= 0 ? 1 + v : 1 + v * 0.5; // -1→0.5x, 0→1x, 1→2x
+  lfoSpeedMult = Math.max(0.5, Math.min(2, mult));
+  document.getElementById('lfo-speed-display').textContent = lfoSpeedMult.toFixed(2) + 'x';
+  drawLfoViz();
+});
 
 function setLfoMode(mode) {
   lfoMode = mode;
@@ -660,6 +670,7 @@ async function toggleLfo() {
     setMorphPos(startPos * 100);
 
     lfoLastTime = null;
+    lfoElapsed = 0;
     if (!workletNode) {
       await playMorph();
     } else {
@@ -682,40 +693,59 @@ function lfoTick(ts) {
   if (lfoLastTime === null) lfoLastTime = ts;
   const dt = Math.min((ts - lfoLastTime) / 1000, 0.1);
   lfoLastTime = ts;
-  const step = lfoHz * dt;
+  lfoElapsed += dt;
 
-  if (lfoMode === 'ping') {
-    lfoPhase += step * lfoDirection;
-    if (lfoPhase >= 1) { lfoPhase = 1; lfoDirection = -1; }
-    if (lfoPhase <= 0 && lfoDirection === -1) { lfoPhase = 0; lfoActive = false; stopLfoUI(); }
-  } else if (lfoMode === 'pong') {
-    lfoPhase += step * lfoDirection;
-    if (lfoPhase <= 0) { lfoPhase = 0; lfoDirection = 1; }
-    if (lfoPhase >= 1 && lfoDirection === 1) { lfoPhase = 1; lfoActive = false; stopLfoUI(); }
-  } else if (lfoMode === 'ab') {
-    lfoPhase += step;
-    if (lfoPhase >= 1) { lfoPhase = 1; lfoActive = false; stopLfoUI(); }
-  } else if (lfoMode === 'ba') {
-    lfoPhase -= step;
-    if (lfoPhase <= 0) { lfoPhase = 0; lfoActive = false; stopLfoUI(); }
-  }
+  const dur = getLfoDuration();
+  const baseDur = getLfoBaseDuration() / lfoSpeedMult;
 
-  let envPos;
+  // single direction modes: elapsed goes from 0 to baseDur/2
+  // ping-pong modes: elapsed goes from 0 to baseDur (full cycle)
+  let phase, done = false;
+
   if (lfoMode === 'ab') {
-    envPos = applyEnvelope(lfoPhase);
+    phase = Math.min(lfoElapsed / dur, 1);
+    if (lfoElapsed >= dur) { phase = 1; done = true; }
+    lfoPhase = phase;
+    const envPos = applyEnvelope(phase);
+    setMorphPos(Math.round(envPos * 100));
   } else if (lfoMode === 'ba') {
-    envPos = 1 - applyEnvelope(1 - lfoPhase);
+    phase = Math.min(lfoElapsed / dur, 1);
+    if (lfoElapsed >= dur) { phase = 1; done = true; }
+    lfoPhase = phase;
+    const envPos = 1 - applyEnvelope(phase);
+    setMorphPos(Math.round(envPos * 100));
   } else if (lfoMode === 'ping') {
-    envPos = lfoDirection > 0
-      ? applyEnvelope(lfoPhase)
-      : 1 - applyEnvelope(1 - lfoPhase);
-  } else { // pong: starts at 1, goes to 0, returns to 1
-    envPos = lfoDirection < 0
-      ? 1 - applyEnvelope(1 - lfoPhase)
-      : applyEnvelope(lfoPhase);
+    // half duration = A→B, second half = B→A
+    const halfDur = dur / 2;
+    if (lfoElapsed <= halfDur) {
+      phase = lfoElapsed / halfDur;
+      lfoPhase = phase * 0.5;
+      lfoDirection = 1;
+      setMorphPos(Math.round(applyEnvelope(phase) * 100));
+    } else {
+      phase = (lfoElapsed - halfDur) / halfDur;
+      lfoPhase = 0.5 + phase * 0.5;
+      lfoDirection = -1;
+      setMorphPos(Math.round((1 - applyEnvelope(phase)) * 100));
+    }
+    if (lfoElapsed >= dur) { done = true; setMorphPos(0); }
+  } else { // pong: B→A→B
+    const halfDur = dur / 2;
+    if (lfoElapsed <= halfDur) {
+      phase = lfoElapsed / halfDur;
+      lfoPhase = 0.5 - phase * 0.5;
+      lfoDirection = -1;
+      setMorphPos(Math.round((1 - applyEnvelope(phase)) * 100));
+    } else {
+      phase = (lfoElapsed - halfDur) / halfDur;
+      lfoPhase = phase * 0.5;
+      lfoDirection = 1;
+      setMorphPos(Math.round(applyEnvelope(phase) * 100));
+    }
+    if (lfoElapsed >= dur) { done = true; setMorphPos(100); }
   }
-  const newPos = Math.round(envPos * 100);
-  if (newPos !== morphPos) setMorphPos(newPos);
+
+  if (done) { lfoActive = false; stopLfoUI(); return; }
 
   drawLfoViz();
   lfoRafId = requestAnimationFrame(lfoTick);
