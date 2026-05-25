@@ -10,59 +10,72 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #111; colo
 .morpher { max-width: 720px; margin: 0 auto; }
 h2 { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; color: #fff; }
 .subtitle { font-size: 13px; color: #888; margin-bottom: 2rem; }
+
 .samples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
 .sample-card { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1rem 1.25rem; transition: border-color 0.2s; }
 .sample-card.loaded { border-color: #555; }
 .sample-label { font-size: 11px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-.sample-name { font-size: 14px; color: #ccc; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 20px; }
-.sample-info { font-size: 12px; color: #666; margin-bottom: 0.75rem; min-height: 16px; }
-.waveform-container { height: 52px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 0.75rem; overflow: hidden; }
+.sample-name { font-size: 14px; color: #ccc; margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 20px; }
+.sample-info { font-size: 12px; color: #666; margin-bottom: 0.6rem; min-height: 16px; }
+.waveform-container { height: 48px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 0.6rem; overflow: hidden; }
 canvas.waveform { width: 100%; height: 100%; display: block; }
-.upload-btn { width: 100%; padding: 7px 12px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: #222; color: #ccc; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s; }
+.gain-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
+.gain-label { font-size: 11px; color: #555; min-width: 36px; }
+.gain-val { font-size: 11px; color: #777; min-width: 32px; text-align: right; }
+input[type="range"].gain-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 3px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+input[type="range"].gain-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+input[type="range"].gain-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+.upload-btn { width: 100%; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: #222; color: #ccc; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s; }
 .upload-btn:hover { background: #2a2a2a; color: #fff; }
 input[type="file"] { display: none; }
-.morph-section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-.mode-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 0.5px solid #2a2a2a; flex-wrap: wrap; }
-.mode-label { font-size: 12px; color: #555; margin-right: 2px; }
-.morph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+
+.section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.section-title { font-size: 12px; font-weight: 500; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.row:last-child { margin-bottom: 0; }
+.lbl { font-size: 12px; color: #555; white-space: nowrap; }
+
+.morph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
 .morph-title { font-size: 14px; font-weight: 500; color: #aaa; }
 .morph-values { display: flex; align-items: baseline; gap: 10px; }
 .morph-value { font-size: 24px; font-weight: 500; color: #fff; }
 .morph-dur { font-size: 13px; color: #555; }
-.morph-labels { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 0.5rem; }
-input[type="range"].morph-slider { width: 100%; margin-bottom: 1.25rem; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+.morph-labels { display: flex; justify-content: space-between; font-size: 12px; color: #444; margin-bottom: 0.4rem; }
+input[type="range"].morph-slider { width: 100%; margin-bottom: 1rem; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
 input[type="range"].morph-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
 input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
-.result-waveform-container { height: 60px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 1rem; overflow: hidden; }
-.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.btn { padding: 8px 16px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: transparent; color: #ccc; display: flex; align-items: center; gap: 6px; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.result-waveform-container { height: 56px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 1rem; overflow: hidden; }
+
+.btn { padding: 7px 14px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: transparent; color: #ccc; display: inline-flex; align-items: center; gap: 5px; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
 .btn:hover { background: #222; color: #fff; }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn.primary { background: #fff; color: #111; border-color: #fff; font-weight: 500; }
-.btn.primary:hover { background: #ddd; border-color: #ddd; }
+.btn.primary:hover { background: #ddd; }
 .btn.primary:disabled { background: transparent; color: #555; border-color: #444; }
 .btn.active { background: #1a2a3a; color: #5aa0d0; border-color: #5aa0d0; }
 .btn.loop-on { background: #1a3a2a; color: #1D9E75; border-color: #1D9E75; }
+.btn.lfo-on { background: #2a1a3a; color: #a07ad0; border-color: #7a50b0; }
+.btn.rec-on { background: #3a1a1a; color: #d07a7a; border-color: #b05050; }
+
 .status { font-size: 12px; color: #666; margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; }
 .dot.ready { background: #639922; }
 .dot.playing { background: #1D9E75; animation: pulse 1s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.hint { font-size: 12px; color: #555; text-align: center; padding: 0.5rem 0; }
-.lfo-section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-.lfo-header { font-size: 14px; font-weight: 500; color: #aaa; margin-bottom: 1rem; }
-.lfo-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; flex-wrap: wrap; }
-.lfo-speed { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
-.lfo-inputs { display: flex; align-items: center; gap: 6px; }
-.lfo-input { width: 72px; padding: 6px 8px; font-size: 13px; background: #111; border: 0.5px solid #444; border-radius: 8px; color: #e8e8e8; outline: none; text-align: right; }
+.dot.rec { background: #d04040; animation: pulse 0.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+.lfo-input { width: 68px; padding: 5px 8px; font-size: 13px; background: #111; border: 0.5px solid #444; border-radius: 8px; color: #e8e8e8; outline: none; text-align: right; }
 .lfo-input:focus { border-color: #666; }
-.lfo-unit { font-size: 12px; color: #555; min-width: 28px; }
-.lfo-sep { font-size: 12px; color: #333; }
-input[type="range"].lfo-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+.lfo-unit { font-size: 12px; color: #555; }
+input[type="range"].lfo-slider { flex: 1; min-width: 120px; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
 input[type="range"].lfo-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
 input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
-.btn.lfo-on { background: #2a1a3a; color: #a07ad0; border-color: #7a50b0; }
+
+.lfo-viz { height: 48px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 0.75rem; overflow: hidden; }
+canvas.lfo-canvas { width: 100%; height: 100%; display: block; }
+
+.hint { font-size: 12px; color: #444; margin-top: 0.5rem; }
 </style>
 </head>
 <body>
@@ -76,6 +89,11 @@ input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; bo
       <div class="sample-name" id="name-a">sin cargar</div>
       <div class="sample-info" id="info-a">—</div>
       <div class="waveform-container"><canvas class="waveform" id="wave-a"></canvas></div>
+      <div class="gain-row">
+        <span class="gain-label">ganancia</span>
+        <input type="range" class="gain-slider" id="gain-a" min="0" max="2" step="0.01" value="1" oninput="setGain('a',this.value)">
+        <span class="gain-val" id="gain-a-val">1.00</span>
+      </div>
       <button class="upload-btn" onclick="document.getElementById('file-a').click()">↑ cargar sample A</button>
       <input type="file" id="file-a" accept="audio/*" onchange="loadSample('a', this)">
     </div>
@@ -84,38 +102,45 @@ input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; bo
       <div class="sample-name" id="name-b">sin cargar</div>
       <div class="sample-info" id="info-b">—</div>
       <div class="waveform-container"><canvas class="waveform" id="wave-b"></canvas></div>
+      <div class="gain-row">
+        <span class="gain-label">ganancia</span>
+        <input type="range" class="gain-slider" id="gain-b" min="0" max="2" step="0.01" value="1" oninput="setGain('b',this.value)">
+        <span class="gain-val" id="gain-b-val">1.00</span>
+      </div>
       <button class="upload-btn" onclick="document.getElementById('file-b').click()">↑ cargar sample B</button>
       <input type="file" id="file-b" accept="audio/*" onchange="loadSample('b', this)">
     </div>
   </div>
 
-  <div class="morph-section">
-    <div class="mode-bar">
-      <span class="mode-label">duración:</span>
+  <!-- MORPH SECTION -->
+  <div class="section">
+    <div class="section-title">crossfade</div>
+
+    <div class="row">
+      <span class="lbl">duración:</span>
       <button class="btn" id="btn-mode-pad" onclick="setDurationMode('pad')">⬜ ceros</button>
       <button class="btn" id="btn-mode-stretch" onclick="setDurationMode('stretch')">⇔ stretch fijo</button>
       <span id="stretch-master" style="display:none; align-items:center; gap:6px;">
-        <span class="mode-label">master:</span>
+        <span class="lbl">master:</span>
         <button class="btn active" id="btn-master-a" onclick="setStretchMaster('a')">A</button>
         <button class="btn" id="btn-master-b" onclick="setStretchMaster('b')">B</button>
       </span>
       <button class="btn active" id="btn-mode-morph" onclick="setDurationMode('morph')">∿ morph</button>
     </div>
+
     <div class="morph-header">
-      <span class="morph-title">posición del morph</span>
+      <span class="morph-title">posición</span>
       <div class="morph-values">
         <span class="morph-dur" id="morph-dur">—</span>
         <span class="morph-value" id="morph-display">0%</span>
       </div>
     </div>
-    <div class="morph-labels">
-      <span>A puro</span>
-      <span>50% — punto medio</span>
-      <span>B puro</span>
-    </div>
+    <div class="morph-labels"><span>A puro</span><span>50%</span><span>B puro</span></div>
     <input type="range" class="morph-slider" id="morph-slider" min="0" max="100" value="0" step="1" oninput="onMorphChange(this.value)">
+
     <div class="result-waveform-container"><canvas class="waveform" id="wave-result"></canvas></div>
-    <div class="controls">
+
+    <div class="row">
       <button class="btn primary" id="btn-play" onclick="playMorph()" disabled>▶ reproducir</button>
       <button class="btn" id="btn-stop" onclick="stopPlayback()" disabled>■ detener</button>
       <button class="btn" id="btn-loop" onclick="toggleLoop()">⟳ loop</button>
@@ -125,31 +150,53 @@ input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; bo
       </div>
     </div>
   </div>
-  <p class="hint" id="hint-text">la duración se interpola con el morph — ambos samples se estiran simétricamente</p>
 
-  <div class="lfo-section">
-    <div class="lfo-header">barrido automático del crossfade</div>
-    <div class="lfo-row">
-      <span class="mode-label">modo:</span>
+  <!-- LFO SECTION -->
+  <div class="section">
+    <div class="section-title">barrido automático</div>
+
+    <div class="row">
+      <span class="lbl">modo:</span>
       <button class="btn" id="btn-lfo-ab" onclick="setLfoMode('ab')">A → B</button>
       <button class="btn active" id="btn-lfo-ping" onclick="setLfoMode('ping')">A ⇄ B</button>
       <button class="btn" id="btn-lfo-ba" onclick="setLfoMode('ba')">B → A</button>
     </div>
-    <div class="lfo-row">
-      <span class="mode-label">velocidad:</span>
-      <div class="lfo-inputs">
-        <input class="lfo-input" id="lfo-hz" type="number" min="0.01" max="20" step="0.01" value="0.50">
-        <span class="lfo-unit">Hz</span>
-        <span class="lfo-sep">·</span>
-        <input class="lfo-input" id="lfo-bpm" type="number" min="0.6" max="1200" step="0.1" value="30.0">
-        <span class="lfo-unit">BPM</span>
-      </div>
+
+    <div class="row">
+      <span class="lbl">envelope:</span>
+      <button class="btn active" id="btn-env-linear" onclick="setEnvelope('linear')">lineal</button>
+      <button class="btn" id="btn-env-sine" onclick="setEnvelope('sine')">sinusoidal</button>
+      <button class="btn" id="btn-env-exp" onclick="setEnvelope('exp')">exponencial</button>
+      <button class="btn" id="btn-env-log" onclick="setEnvelope('log')">logarítmica</button>
     </div>
-    <div class="lfo-row">
-      <input type="range" class="lfo-slider" id="lfo-slider" min="-3" max="1.301" step="0.001" value="-0.301">
+
+    <div class="lfo-viz"><canvas class="lfo-canvas" id="lfo-canvas"></canvas></div>
+
+    <div class="row">
+      <span class="lbl">velocidad:</span>
+      <input class="lfo-input" id="lfo-hz" type="number" min="0.01" max="20" step="0.01" value="0.50">
+      <span class="lfo-unit">Hz</span>
+      <span class="lfo-unit" style="color:#333">·</span>
+      <input class="lfo-input" id="lfo-bpm" type="number" min="0.6" max="1200" step="0.1" value="30.0">
+      <span class="lfo-unit">BPM</span>
+      <input type="range" class="lfo-slider" id="lfo-slider" min="-2" max="1.301" step="0.001" value="-0.301">
     </div>
-    <div class="controls" style="margin-top:0.25rem;">
+
+    <div class="row">
       <button class="btn" id="btn-lfo-toggle" onclick="toggleLfo()">▶ iniciar barrido</button>
+      <button class="btn rec-off" id="btn-record" onclick="toggleRecord()" disabled>⏺ grabar</button>
+      <button class="btn" id="btn-export" onclick="exportCurrent()" disabled>↓ exportar posición</button>
+    </div>
+    <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
+  </div>
+
+  <!-- PRESETS SECTION -->
+  <div class="section">
+    <div class="section-title">presets</div>
+    <div class="row">
+      <button class="btn" onclick="savePreset()">↓ guardar preset</button>
+      <button class="btn" onclick="document.getElementById('preset-file').click()">↑ cargar preset</button>
+      <input type="file" id="preset-file" accept=".json" style="display:none" onchange="loadPreset(this)">
     </div>
   </div>
 </div>
@@ -162,9 +209,27 @@ let morphPos = 0;
 let loopEnabled = false;
 let durationMode = 'morph';
 let stretchMaster = 'a';
+let gainA = 1, gainB = 1;
+let stereoMode = false;
+
+// LFO
+let lfoActive = false;
+let lfoMode = 'ping';
+let lfoHz = 0.5;
+let lfoPhase = 0;
+let lfoDirection = 1;
+let lfoRafId = null;
+let lfoLastTime = null;
+let lfoEnvelope = 'linear';
+
+// Recording
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let recordingDest = null;
 
 const hints = {
-  pad:     'el sample más corto se rellena con silencio hasta la duración del más largo',
+  pad:     'el sample corto se rellena con silencio hasta la duración del más largo',
   stretch: 'ambos samples se estiran a la duración del sample master',
   morph:   'la duración se interpola con el morph — ambos samples se estiran simétricamente'
 };
@@ -177,91 +242,38 @@ async function getAudioContext() {
   return audioCtx;
 }
 
-function stretchTo(data, targetLen) {
-  if (data.length === targetLen) return data;
-  const result = new Float32Array(targetLen);
-  const ratio = (data.length - 1) / (targetLen - 1);
-  for (let i = 0; i < targetLen; i++) {
-    const pos = i * ratio;
-    const idx = Math.floor(pos);
-    const frac = pos - idx;
-    const v0 = data[idx];
-    const v1 = idx + 1 < data.length ? data[idx + 1] : data[idx];
-    result[i] = v0 + frac * (v1 - v0);
-  }
-  return result;
+// ── GAIN ──────────────────────────────────────────────
+function setGain(id, val) {
+  const v = parseFloat(val);
+  if (id === 'a') { gainA = v; document.getElementById('gain-a-val').textContent = v.toFixed(2); }
+  else { gainB = v; document.getElementById('gain-b-val').textContent = v.toFixed(2); }
+  if (workletNode) workletNode.port.postMessage({ type: id === 'a' ? 'gainA' : 'gainB', value: v });
 }
 
-function prepareSamples() {
-  if (!samples.a || !samples.b) return null;
-  const lenA = samples.a.data.length;
-  const lenB = samples.b.data.length;
-
-  if (durationMode === 'morph') {
-    return { a: samples.a.data, b: samples.b.data };
+// ── SAMPLES ───────────────────────────────────────────
+function mergeChannels(decoded) {
+  const len = decoded.length;
+  const numCh = decoded.numberOfChannels;
+  if (numCh === 1) {
+    const mono = decoded.getChannelData(0);
+    const stereo = new Float32Array(len * 2);
+    stereo.set(mono, 0); stereo.set(mono, len);
+    return { data: stereo, channels: 2 };
   }
-
-  const targetLen = durationMode === 'stretch'
-    ? (stretchMaster === 'a' ? lenA : lenB)
-    : Math.max(lenA, lenB);
-
-  if (durationMode === 'stretch') {
-    return {
-      a: stretchTo(samples.a.data, targetLen),
-      b: stretchTo(samples.b.data, targetLen)
-    };
-  }
-
-  // pad
-  const a = new Float32Array(targetLen);
-  const b = new Float32Array(targetLen);
-  a.set(samples.a.data);
-  b.set(samples.b.data);
-  return { a, b };
+  const L = decoded.getChannelData(0);
+  const R = decoded.getChannelData(1);
+  const stereo = new Float32Array(len * 2);
+  stereo.set(L, 0); stereo.set(R, len);
+  return { data: stereo, channels: 2 };
 }
 
-function interpolatedLength(t) {
-  if (!samples.a || !samples.b) return 0;
-  if (durationMode === 'morph') {
-    return Math.round(samples.a.data.length * (1 - t) + samples.b.data.length * t);
-  }
-  if (durationMode === 'stretch') {
-    return stretchMaster === 'a' ? samples.a.data.length : samples.b.data.length;
-  }
-  return Math.max(samples.a.data.length, samples.b.data.length);
-}
-
-function setDurationMode(mode) {
-  durationMode = mode;
-  ['pad', 'stretch', 'morph'].forEach(m => {
-    document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode);
-  });
-  document.getElementById('hint-text').textContent = hints[mode];
-  const masterEl = document.getElementById('stretch-master');
-  masterEl.style.display = mode === 'stretch' ? 'inline-flex' : 'none';
-  if (samples.a && samples.b) {
-    updateDurationDisplay(morphPos);
-    drawWaveform('wave-result', computeMorphPreview(morphPos));
-  }
-  if (workletNode) {
-    const prep = prepareSamples();
-    workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
-    workletNode.port.postMessage({ type: 'durationMode', value: mode });
-  }
-}
-
-function setStretchMaster(master) {
-  stretchMaster = master;
-  document.getElementById('btn-master-a').classList.toggle('active', master === 'a');
-  document.getElementById('btn-master-b').classList.toggle('active', master === 'b');
-  if (samples.a && samples.b) {
-    updateDurationDisplay(morphPos);
-    drawWaveform('wave-result', computeMorphPreview(morphPos));
-  }
-  if (workletNode) {
-    const prep = prepareSamples();
-    workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
-  }
+function monoPreview(sample) {
+  const ch = sample.channels;
+  const len = sample.data.length / ch;
+  if (ch === 1) return sample.data;
+  const mono = new Float32Array(len);
+  for (let i = 0; i < len; i++) mono[i] = (sample.data[i] + sample.data[len + i]) * 0.5;
+  return mono;
 }
 
 async function loadSample(id, input) {
@@ -274,12 +286,12 @@ async function loadSample(id, input) {
     const arrayBuffer = await file.arrayBuffer();
     const ctx = await getAudioContext();
     const decoded = await ctx.decodeAudioData(arrayBuffer);
-    const monoData = mergeToMono(decoded);
-    samples[id] = { data: monoData, sampleRate: decoded.sampleRate, duration: decoded.duration };
+    const { data, channels } = mergeChannels(decoded);
+    samples[id] = { data, channels, sampleRate: decoded.sampleRate, duration: decoded.duration, frames: decoded.length };
     nameEl.textContent = file.name;
-    infoEl.textContent = decoded.duration.toFixed(2) + 's · ' + (decoded.sampleRate/1000).toFixed(1) + 'kHz · ' + decoded.numberOfChannels + 'ch → mono';
+    infoEl.textContent = decoded.duration.toFixed(2) + 's · ' + (decoded.sampleRate/1000).toFixed(1) + 'kHz · ' + decoded.numberOfChannels + 'ch → stereo';
     document.getElementById('card-' + id).classList.add('loaded');
-    drawWaveform('wave-' + id, monoData);
+    drawWaveform('wave-' + id, monoPreview(samples[id]));
     checkReady();
   } catch(e) {
     nameEl.textContent = 'error al cargar';
@@ -287,18 +299,83 @@ async function loadSample(id, input) {
   }
 }
 
-function mergeToMono(decoded) {
-  const len = decoded.length;
-  const numCh = decoded.numberOfChannels;
-  const mono = new Float32Array(len);
-  for (let ch = 0; ch < numCh; ch++) {
-    const chData = decoded.getChannelData(ch);
-    for (let i = 0; i < len; i++) mono[i] += chData[i];
+// ── STRETCH ───────────────────────────────────────────
+function stretchTo(data, frames, channels, targetFrames) {
+  if (frames === targetFrames) return data;
+  const result = new Float32Array(targetFrames * channels);
+  const ratio = (frames - 1) / (targetFrames - 1);
+  for (let ch = 0; ch < channels; ch++) {
+    const srcOff = ch * frames;
+    const dstOff = ch * targetFrames;
+    for (let i = 0; i < targetFrames; i++) {
+      const pos = i * ratio;
+      const idx = Math.floor(pos);
+      const frac = pos - idx;
+      const v0 = data[srcOff + idx] || 0;
+      const v1 = data[srcOff + Math.min(idx + 1, frames - 1)] || 0;
+      result[dstOff + i] = v0 + frac * (v1 - v0);
+    }
   }
-  if (numCh > 1) for (let i = 0; i < len; i++) mono[i] /= numCh;
-  return mono;
+  return result;
 }
 
+function prepareSamples() {
+  if (!samples.a || !samples.b) return null;
+  const frA = samples.a.frames, frB = samples.b.frames;
+
+  if (durationMode === 'morph') return { a: samples.a.data, b: samples.b.data, stereo: true };
+
+  const targetFrames = durationMode === 'stretch'
+    ? (stretchMaster === 'a' ? frA : frB)
+    : Math.max(frA, frB);
+
+  if (durationMode === 'stretch') {
+    return {
+      a: stretchTo(samples.a.data, frA, 2, targetFrames),
+      b: stretchTo(samples.b.data, frB, 2, targetFrames),
+      stereo: true
+    };
+  }
+
+  const a = new Float32Array(targetFrames * 2);
+  const b = new Float32Array(targetFrames * 2);
+  a.set(samples.a.data.slice(0, frA), 0);
+  a.set(samples.a.data.slice(frA, frA * 2), targetFrames);
+  b.set(samples.b.data.slice(0, frB), 0);
+  b.set(samples.b.data.slice(frB, frB * 2), targetFrames);
+  return { a, b, stereo: true };
+}
+
+function interpolatedFrames(t) {
+  if (!samples.a || !samples.b) return 0;
+  if (durationMode === 'morph') return Math.round(samples.a.frames * (1 - t) + samples.b.frames * t);
+  if (durationMode === 'stretch') return stretchMaster === 'a' ? samples.a.frames : samples.b.frames;
+  return Math.max(samples.a.frames, samples.b.frames);
+}
+
+// ── DURATION MODE ─────────────────────────────────────
+function setDurationMode(mode) {
+  durationMode = mode;
+  ['pad','stretch','morph'].forEach(m => document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode));
+  document.getElementById('stretch-master').style.display = mode === 'stretch' ? 'inline-flex' : 'none';
+  document.getElementById('hint-text').textContent = hints[mode];
+  if (samples.a && samples.b) { updateDurationDisplay(morphPos); drawWaveform('wave-result', computeMorphPreview(morphPos)); }
+  if (workletNode) {
+    const prep = prepareSamples();
+    workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b, stereo: true });
+    workletNode.port.postMessage({ type: 'durationMode', value: mode });
+  }
+}
+
+function setStretchMaster(master) {
+  stretchMaster = master;
+  document.getElementById('btn-master-a').classList.toggle('active', master === 'a');
+  document.getElementById('btn-master-b').classList.toggle('active', master === 'b');
+  if (samples.a && samples.b) { updateDurationDisplay(morphPos); drawWaveform('wave-result', computeMorphPreview(morphPos)); }
+  if (workletNode) { const prep = prepareSamples(); workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b, stereo: true }); }
+}
+
+// ── WAVEFORM DRAWING ──────────────────────────────────
 function drawWaveform(canvasId, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -311,9 +388,7 @@ function drawWaveform(canvasId, data) {
   c.clearRect(0, 0, W, H);
   const step = Math.max(1, Math.floor(data.length / W));
   const midY = H / 2;
-  c.beginPath();
-  c.strokeStyle = '#666';
-  c.lineWidth = 1;
+  c.beginPath(); c.strokeStyle = '#666'; c.lineWidth = 1;
   for (let x = 0; x < W; x++) {
     let min = 1, max = -1;
     const start = x * step, end = Math.min(start + step, data.length);
@@ -321,8 +396,7 @@ function drawWaveform(canvasId, data) {
       if (data[i] < min) min = data[i];
       if (data[i] > max) max = data[i];
     }
-    const yTop = midY - max * midY * 0.9;
-    const yBot = midY - min * midY * 0.9;
+    const yTop = midY - max * midY * 0.9, yBot = midY - min * midY * 0.9;
     if (x === 0) c.moveTo(x, yTop);
     else { c.lineTo(x, yTop); c.lineTo(x, yBot); }
   }
@@ -332,25 +406,26 @@ function drawWaveform(canvasId, data) {
 function computeMorphPreview(pos) {
   if (!samples.a || !samples.b) return new Float32Array(0);
   const t = pos / 100;
-  const targetLen = interpolatedLength(t);
-  const prep = prepareSamples();
-  const a = durationMode === 'morph' ? stretchTo(prep.a, targetLen) : prep.a;
-  const b = durationMode === 'morph' ? stretchTo(prep.b, targetLen) : prep.b;
-  const result = new Float32Array(targetLen);
-  for (let i = 0; i < targetLen; i++) {
-    result[i] = a[i] * (1 - t) + b[i] * t;
+  const targetFrames = interpolatedFrames(t);
+  const aS = stretchTo(samples.a.data, samples.a.frames, 2, targetFrames);
+  const bS = stretchTo(samples.b.data, samples.b.frames, 2, targetFrames);
+  const mono = new Float32Array(targetFrames);
+  for (let i = 0; i < targetFrames; i++) {
+    const vaL = aS[i] * gainA, vbL = bS[i] * gainB;
+    const vaR = aS[targetFrames + i] * gainA, vbR = bS[targetFrames + i] * gainB;
+    mono[i] = ((vaL * (1-t) + vbL * t) + (vaR * (1-t) + vbR * t)) * 0.5;
   }
-  return result;
+  return mono;
 }
 
 function updateDurationDisplay(pos) {
   if (!samples.a || !samples.b) return;
-  const t = pos / 100;
   const sr = samples.a.sampleRate;
-  const dur = interpolatedLength(t) / sr;
+  const dur = interpolatedFrames(pos / 100) / sr;
   document.getElementById('morph-dur').textContent = dur.toFixed(2) + 's';
 }
 
+// ── MORPH CHANGE ──────────────────────────────────────
 function onMorphChange(val) {
   morphPos = parseInt(val);
   document.getElementById('morph-display').textContent = morphPos + '%';
@@ -361,9 +436,23 @@ function onMorphChange(val) {
   }
 }
 
+function setMorphPos(val) {
+  morphPos = Math.max(0, Math.min(100, Math.round(val)));
+  document.getElementById('morph-slider').value = morphPos;
+  document.getElementById('morph-display').textContent = morphPos + '%';
+  if (samples.a && samples.b) {
+    updateDurationDisplay(morphPos);
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
+    if (workletNode) workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+  }
+}
+
+// ── PLAYBACK ──────────────────────────────────────────
 function checkReady() {
   const ready = samples.a && samples.b;
   document.getElementById('btn-play').disabled = !ready;
+  document.getElementById('btn-export').disabled = !ready;
+  document.getElementById('btn-record').disabled = !ready;
   if (ready) {
     document.getElementById('status-dot').className = 'dot ready';
     document.getElementById('status-text').textContent = 'listo';
@@ -379,13 +468,19 @@ async function playMorph() {
   if (ctx.state === 'suspended') await ctx.resume();
 
   const prep = prepareSamples();
-  workletNode = new AudioWorkletNode(ctx, 'morph-processor');
-  workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
+  workletNode = new AudioWorkletNode(ctx, 'morph-processor', { outputChannelCount: [2] });
+  workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b, stereo: true });
   workletNode.port.postMessage({ type: 'durationMode', value: durationMode });
   workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
+  workletNode.port.postMessage({ type: 'gainA', value: gainA });
+  workletNode.port.postMessage({ type: 'gainB', value: gainB });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
   workletNode.port.postMessage({ type: 'play' });
-  workletNode.port.onmessage = (e) => { if (e.data.type === 'ended') setStoppedUI(); };
+  workletNode.port.onmessage = (e) => { if (e.data.type === 'ended') { if (isRecording) stopRecord(); setStoppedUI(); } };
+
+  if (isRecording && recordingDest) {
+    workletNode.connect(recordingDest);
+  }
   workletNode.connect(ctx.destination);
 
   document.getElementById('status-dot').className = 'dot playing';
@@ -400,6 +495,7 @@ function stopPlayback() {
     workletNode.disconnect();
     workletNode = null;
   }
+  if (isRecording) stopRecord();
   setStoppedUI();
 }
 
@@ -416,48 +512,80 @@ function toggleLoop() {
   const btn = document.getElementById('btn-loop');
   btn.classList.toggle('loop-on', loopEnabled);
   btn.textContent = loopEnabled ? '⟳ loop on' : '⟳ loop';
-  if (workletNode) {
-    workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
-    document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
+  if (workletNode) workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
+}
+
+// ── LFO ───────────────────────────────────────────────
+function applyEnvelope(phase) {
+  switch (lfoEnvelope) {
+    case 'sine': return (1 - Math.cos(phase * Math.PI)) * 0.5;
+    case 'exp':  return (Math.exp(phase * 3) - 1) / (Math.exp(3) - 1);
+    case 'log':  return Math.log(1 + phase * (Math.E - 1));
+    default:     return phase;
   }
 }
 
+function drawLfoViz() {
+  const canvas = document.getElementById('lfo-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  c.clearRect(0, 0, W, H);
 
-let lfoActive = false;
-let lfoMode = 'ping';
-let lfoHz = 0.5;
-let lfoPhase = 0;
-let lfoRafId = null;
-let lfoLastTime = null;
-let lfoDirection = 1;
+  c.beginPath(); c.strokeStyle = '#555'; c.lineWidth = 0.5;
+  c.moveTo(0, H/2); c.lineTo(W, H/2); c.stroke();
 
-function hzToBpm(hz) { return hz * 60; }
-function bpmToHz(bpm) { return bpm / 60; }
+  c.beginPath(); c.strokeStyle = '#7a50b0'; c.lineWidth = 1.5;
+  const steps = W * 2;
+  for (let x = 0; x <= steps; x++) {
+    const p = x / steps;
+    let val;
+    if (lfoMode === 'ab') val = applyEnvelope(p);
+    else if (lfoMode === 'ba') val = 1 - applyEnvelope(p);
+    else {
+      val = p < 0.5 ? applyEnvelope(p * 2) : 1 - applyEnvelope((p - 0.5) * 2);
+    }
+    const px = (x / steps) * W;
+    const py = H - val * H * 0.85 - H * 0.075;
+    if (x === 0) c.moveTo(px, py); else c.lineTo(px, py);
+  }
+  c.stroke();
+
+  if (lfoActive) {
+    let markerPhase = lfoPhase;
+    if (lfoMode === 'ping') markerPhase = lfoDirection > 0 ? lfoPhase * 0.5 : 1 - lfoPhase * 0.5;
+    const mx = markerPhase * W;
+    c.beginPath(); c.strokeStyle = '#a07ad0'; c.lineWidth = 1;
+    c.moveTo(mx, 0); c.lineTo(mx, H); c.stroke();
+  }
+}
 
 function setLfoHz(hz) {
   lfoHz = Math.max(0.01, Math.min(20, hz));
   document.getElementById('lfo-hz').value = lfoHz.toFixed(2);
-  document.getElementById('lfo-bpm').value = hzToBpm(lfoHz).toFixed(1);
-  const log = Math.log10(lfoHz);
-  document.getElementById('lfo-slider').value = log.toFixed(3);
+  document.getElementById('lfo-bpm').value = (lfoHz * 60).toFixed(1);
+  document.getElementById('lfo-slider').value = Math.log10(lfoHz).toFixed(3);
 }
 
-document.getElementById('lfo-hz').addEventListener('change', function() {
-  setLfoHz(parseFloat(this.value) || 0.5);
-});
-document.getElementById('lfo-bpm').addEventListener('change', function() {
-  setLfoHz(bpmToHz(parseFloat(this.value) || 30));
-});
-document.getElementById('lfo-slider').addEventListener('input', function() {
-  setLfoHz(Math.pow(10, parseFloat(this.value)));
-});
+document.getElementById('lfo-hz').addEventListener('change', function() { setLfoHz(parseFloat(this.value) || 0.5); });
+document.getElementById('lfo-bpm').addEventListener('change', function() { setLfoHz((parseFloat(this.value) || 30) / 60); });
+document.getElementById('lfo-slider').addEventListener('input', function() { setLfoHz(Math.pow(10, parseFloat(this.value))); });
 
 function setLfoMode(mode) {
   lfoMode = mode;
-  ['ab','ping','ba'].forEach(m => {
-    document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode);
-  });
+  ['ab','ping','ba'].forEach(m => document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode));
   if (lfoActive) { lfoPhase = 0; lfoDirection = 1; }
+  drawLfoViz();
+}
+
+function setEnvelope(env) {
+  lfoEnvelope = env;
+  ['linear','sine','exp','log'].forEach(e => document.getElementById('btn-env-' + e).classList.toggle('active', e === env));
+  drawLfoViz();
 }
 
 function toggleLfo() {
@@ -467,23 +595,24 @@ function toggleLfo() {
     btn.textContent = '■ detener barrido';
     btn.classList.add('lfo-on');
     lfoPhase = morphPos / 100;
-    lfoDirection = 1;
+    lfoDirection = lfoMode === 'ba' ? -1 : 1;
     lfoLastTime = null;
+    if (!workletNode) playMorph();
     lfoRafId = requestAnimationFrame(lfoTick);
   } else {
     btn.textContent = '▶ iniciar barrido';
     btn.classList.remove('lfo-on');
     if (lfoRafId) cancelAnimationFrame(lfoRafId);
     lfoRafId = null;
+    drawLfoViz();
   }
 }
 
 function lfoTick(ts) {
   if (!lfoActive) return;
   if (lfoLastTime === null) lfoLastTime = ts;
-  const dt = (ts - lfoLastTime) / 1000;
+  const dt = Math.min((ts - lfoLastTime) / 1000, 0.1);
   lfoLastTime = ts;
-
   const step = lfoHz * dt;
 
   if (lfoMode === 'ping') {
@@ -492,39 +621,160 @@ function lfoTick(ts) {
     if (lfoPhase <= 0) { lfoPhase = 0; lfoDirection = 1; }
   } else if (lfoMode === 'ab') {
     lfoPhase += step;
-    if (lfoPhase >= 1) { lfoPhase = 1; lfoActive = false; toggleLfoOff(); return; }
+    if (lfoPhase >= 1) { lfoPhase = 1; lfoActive = false; stopLfoUI(); }
   } else if (lfoMode === 'ba') {
     lfoPhase -= step;
-    if (lfoPhase <= 0) { lfoPhase = 0; lfoActive = false; toggleLfoOff(); return; }
+    if (lfoPhase <= 0) { lfoPhase = 0; lfoActive = false; stopLfoUI(); }
   }
 
-  const newPos = Math.round(lfoPhase * 100);
-  if (newPos !== morphPos) {
-    morphPos = newPos;
-    document.getElementById('morph-slider').value = morphPos;
-    document.getElementById('morph-display').textContent = morphPos + '%';
-    if (samples.a && samples.b) {
-      updateDurationDisplay(morphPos);
-      drawWaveform('wave-result', computeMorphPreview(morphPos));
-      if (workletNode) workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
-    }
-  }
+  const rawPos = lfoMode === 'ba' ? lfoPhase : lfoPhase;
+  const envPos = applyEnvelope(lfoMode === 'ba' ? 1 - lfoPhase : lfoPhase);
+  const newPos = Math.round(envPos * 100);
+  if (newPos !== morphPos) setMorphPos(newPos);
 
+  drawLfoViz();
   lfoRafId = requestAnimationFrame(lfoTick);
 }
 
-function toggleLfoOff() {
-  const btn = document.getElementById('btn-lfo-toggle');
-  btn.textContent = '▶ iniciar barrido';
-  btn.classList.remove('lfo-on');
+function stopLfoUI() {
+  document.getElementById('btn-lfo-toggle').textContent = '▶ iniciar barrido';
+  document.getElementById('btn-lfo-toggle').classList.remove('lfo-on');
   lfoRafId = null;
+  drawLfoViz();
 }
 
+// ── RECORDING ─────────────────────────────────────────
+async function toggleRecord() {
+  if (isRecording) { stopRecord(); return; }
+  const ctx = await getAudioContext();
+  recordingDest = ctx.createMediaStreamDestination();
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(recordingDest.stream);
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => downloadRecording();
+  mediaRecorder.start();
+  isRecording = true;
+  document.getElementById('btn-record').textContent = '■ detener grabación';
+  document.getElementById('btn-record').classList.add('rec-on');
+  document.getElementById('status-dot').className = 'dot rec';
+  document.getElementById('status-text').textContent = 'grabando...';
+  if (!workletNode) await playMorph();
+  else if (workletNode) workletNode.connect(recordingDest);
+  if (!lfoActive) toggleLfo();
+}
+
+function stopRecord() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  isRecording = false;
+  document.getElementById('btn-record').textContent = '⏺ grabar';
+  document.getElementById('btn-record').classList.remove('rec-on');
+}
+
+function downloadRecording() {
+  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'morph-recording.webm'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── EXPORT CURRENT ────────────────────────────────────
+async function exportCurrent() {
+  if (!samples.a || !samples.b) return;
+  const t = morphPos / 100;
+  const targetFrames = interpolatedFrames(t);
+  const aS = stretchTo(samples.a.data, samples.a.frames, 2, targetFrames);
+  const bS = stretchTo(samples.b.data, samples.b.frames, 2, targetFrames);
+  const sr = samples.a.sampleRate;
+
+  const L = new Float32Array(targetFrames);
+  const R = new Float32Array(targetFrames);
+  for (let i = 0; i < targetFrames; i++) {
+    L[i] = (aS[i] * gainA) * (1-t) + (bS[i] * gainB) * t;
+    R[i] = (aS[targetFrames+i] * gainA) * (1-t) + (bS[targetFrames+i] * gainB) * t;
+  }
+
+  const wav = encodeWav([L, R], sr);
+  const blob = new Blob([wav], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'morph-' + morphPos + 'pct.wav'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function encodeWav(channels, sampleRate) {
+  const numCh = channels.length;
+  const numSamples = channels[0].length;
+  const buffer = new ArrayBuffer(44 + numSamples * numCh * 2);
+  const view = new DataView(buffer);
+  const write = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * numCh * 2, true);
+  write(8, 'WAVE'); write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numCh * 2, true);
+  view.setUint16(32, numCh * 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, numSamples * numCh * 2, true);
+  let off = 44;
+  for (let i = 0; i < numSamples; i++) {
+    for (let ch = 0; ch < numCh; ch++) {
+      const s = Math.max(-1, Math.min(1, channels[ch][i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      off += 2;
+    }
+  }
+  return buffer;
+}
+
+// ── PRESETS ───────────────────────────────────────────
+function savePreset() {
+  const preset = {
+    morphPos, loopEnabled, durationMode, stretchMaster,
+    gainA, gainB, lfoMode, lfoHz, lfoEnvelope
+  };
+  const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'morph-preset.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadPreset(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const p = JSON.parse(e.target.result);
+      if (p.gainA !== undefined) { gainA = p.gainA; document.getElementById('gain-a').value = gainA; document.getElementById('gain-a-val').textContent = gainA.toFixed(2); if (workletNode) workletNode.port.postMessage({ type: 'gainA', value: gainA }); }
+      if (p.gainB !== undefined) { gainB = p.gainB; document.getElementById('gain-b').value = gainB; document.getElementById('gain-b-val').textContent = gainB.toFixed(2); if (workletNode) workletNode.port.postMessage({ type: 'gainB', value: gainB }); }
+      if (p.durationMode) setDurationMode(p.durationMode);
+      if (p.stretchMaster) setStretchMaster(p.stretchMaster);
+      if (p.loopEnabled !== undefined) { loopEnabled = p.loopEnabled; const btn = document.getElementById('btn-loop'); btn.classList.toggle('loop-on', loopEnabled); btn.textContent = loopEnabled ? '⟳ loop on' : '⟳ loop'; }
+      if (p.lfoMode) setLfoMode(p.lfoMode);
+      if (p.lfoHz !== undefined) setLfoHz(p.lfoHz);
+      if (p.lfoEnvelope) setEnvelope(p.lfoEnvelope);
+      if (p.morphPos !== undefined) setMorphPos(p.morphPos);
+    } catch(err) { alert('Error al cargar preset: ' + err.message); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ── RESIZE ────────────────────────────────────────────
 window.addEventListener('resize', () => {
-  if (samples.a) drawWaveform('wave-a', samples.a.data);
-  if (samples.b) drawWaveform('wave-b', samples.b.data);
+  if (samples.a) drawWaveform('wave-a', monoPreview(samples.a));
+  if (samples.b) drawWaveform('wave-b', monoPreview(samples.b));
   if (samples.a && samples.b) drawWaveform('wave-result', computeMorphPreview(morphPos));
+  drawLfoViz();
 });
+
+drawLfoViz();
 </script>
 </body>
 </html>
