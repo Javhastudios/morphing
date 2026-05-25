@@ -7,14 +7,12 @@ class MorphProcessor extends AudioWorkletProcessor {
     this.pos = 0;
     this.loop = false;
     this.playing = false;
-    this.length = 0;
 
     this.port.onmessage = (e) => {
       const d = e.data;
       if (d.type === 'samples') {
         this.samplesA = d.a;
         this.samplesB = d.b;
-        this.length = Math.max(d.a.length, d.b.length);
         this.pos = 0;
         this.playing = false;
       }
@@ -25,6 +23,15 @@ class MorphProcessor extends AudioWorkletProcessor {
     };
   }
 
+  getSample(data, normalizedPos) {
+    const pos = normalizedPos * (data.length - 1);
+    const idx = Math.floor(pos);
+    const frac = pos - idx;
+    const v0 = data[idx];
+    const v1 = idx + 1 < data.length ? data[idx + 1] : data[idx];
+    return v0 + frac * (v1 - v0);
+  }
+
   process(inputs, outputs) {
     const out = outputs[0][0];
     if (!this.playing || !this.samplesA || !this.samplesB) {
@@ -33,11 +40,12 @@ class MorphProcessor extends AudioWorkletProcessor {
     }
 
     const t = this.morphT;
-    const a = this.samplesA;
-    const b = this.samplesB;
+    const lenA = this.samplesA.length;
+    const lenB = this.samplesB.length;
+    const targetLen = lenA * (1 - t) + lenB * t;
 
     for (let i = 0; i < out.length; i++) {
-      if (this.pos >= this.length) {
+      if (this.pos >= targetLen) {
         if (this.loop) {
           this.pos = 0;
         } else {
@@ -47,8 +55,10 @@ class MorphProcessor extends AudioWorkletProcessor {
           continue;
         }
       }
-      const va = this.pos < a.length ? a[this.pos] : 0;
-      const vb = this.pos < b.length ? b[this.pos] : 0;
+
+      const norm = this.pos / (targetLen - 1);
+      const va = this.getSample(this.samplesA, norm);
+      const vb = this.getSample(this.samplesB, norm);
       out[i] = va * (1 - t) + vb * t;
       this.pos++;
     }
