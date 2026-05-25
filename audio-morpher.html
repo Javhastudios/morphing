@@ -190,6 +190,7 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <input class="lfo-input" id="lfo-bpm" type="number" min="0.6" max="1200" step="0.1" value="30.0">
       <span class="lfo-unit">BPM</span>
       <input type="range" class="lfo-slider" id="lfo-slider" min="-2" max="1.301" step="0.001" value="-0.301">
+      <button class="btn" id="btn-lfo-sync" onclick="syncLfoToSample()" title="sincronizar al sample más largo">⇥ sync</button>
     </div>
 
     <div class="row">
@@ -605,6 +606,18 @@ function drawLfoViz() {
     c.beginPath(); c.strokeStyle = '#a07ad0'; c.lineWidth = 1;
     c.moveTo(mx, 0); c.lineTo(mx, H); c.stroke();
   }
+}
+
+function syncLfoToSample() {
+  if (!samples.a && !samples.b) return;
+  const dur = Math.max(
+    samples.a ? samples.a.duration : 0,
+    samples.b ? samples.b.duration : 0
+  );
+  if (dur <= 0) return;
+  const isPingPong = lfoMode === 'ping' || lfoMode === 'pong';
+  const hz = 1 / (isPingPong ? dur * 2 : dur);
+  setLfoHz(hz);
 }
 
 function setLfoHz(hz) {
