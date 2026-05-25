@@ -6,13 +6,7 @@
 <title>Audio Morpher</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background: #111;
-  color: #e8e8e8;
-  min-height: 100vh;
-  padding: 2rem;
-}
+body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #e8e8e8; min-height: 100vh; padding: 2rem; }
 .morpher { max-width: 720px; margin: 0 auto; }
 h2 { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; color: #fff; }
 .subtitle { font-size: 13px; color: #888; margin-bottom: 2rem; }
@@ -44,6 +38,7 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
 .btn.primary { background: #fff; color: #111; border-color: #fff; font-weight: 500; }
 .btn.primary:hover { background: #ddd; border-color: #ddd; }
 .btn.primary:disabled { background: transparent; color: #555; border-color: #444; }
+.btn.active { background: #1a2a3a; color: #5aa0d0; border-color: #5aa0d0; }
 .btn.loop-on { background: #1a3a2a; color: #1D9E75; border-color: #1D9E75; }
 .status { font-size: 12px; color: #666; margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; }
@@ -51,6 +46,8 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
 .dot.playing { background: #1D9E75; animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .hint { font-size: 12px; color: #555; text-align: center; padding: 0.5rem 0; }
+.mode-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 0.5px solid #2a2a2a; }
+.mode-label { font-size: 12px; color: #555; }
 </style>
 </head>
 <body>
@@ -78,6 +75,11 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
   </div>
 
   <div class="morph-section">
+    <div class="mode-bar">
+      <span class="mode-label">sample corto:</span>
+      <button class="btn" id="btn-pad" onclick="setMode('pad')">⬜ rellenar con ceros</button>
+      <button class="btn active" id="btn-stretch" onclick="setMode('stretch')">⇔ stretch</button>
+    </div>
     <div class="morph-header">
       <span class="morph-title">posición del morph</span>
       <span class="morph-value" id="morph-display">0%</span>
@@ -105,19 +107,60 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
 <script>
 let audioCtx = null;
 let workletNode = null;
-let workletReady = false;
 let samples = { a: null, b: null };
 let morphPos = 0;
 let loopEnabled = false;
-let isPlaying = false;
+let stretchMode = true;
 
 async function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     await audioCtx.audioWorklet.addModule('morph-processor.js');
-    workletReady = true;
   }
   return audioCtx;
+}
+
+function stretchTo(data, targetLen) {
+  if (data.length === targetLen) return data;
+  const result = new Float32Array(targetLen);
+  const ratio = (data.length - 1) / (targetLen - 1);
+  for (let i = 0; i < targetLen; i++) {
+    const pos = i * ratio;
+    const idx = Math.floor(pos);
+    const frac = pos - idx;
+    const v0 = data[idx];
+    const v1 = idx + 1 < data.length ? data[idx + 1] : data[idx];
+    result[i] = v0 + frac * (v1 - v0);
+  }
+  return result;
+}
+
+function prepareSamples() {
+  if (!samples.a || !samples.b) return null;
+  const lenA = samples.a.data.length;
+  const lenB = samples.b.data.length;
+  const targetLen = Math.max(lenA, lenB);
+
+  let a, b;
+  if (stretchMode) {
+    a = lenA < targetLen ? stretchTo(samples.a.data, targetLen) : samples.a.data;
+    b = lenB < targetLen ? stretchTo(samples.b.data, targetLen) : samples.b.data;
+  } else {
+    a = new Float32Array(targetLen);
+    b = new Float32Array(targetLen);
+    a.set(samples.a.data);
+    b.set(samples.b.data);
+  }
+  return { a, b, length: targetLen };
+}
+
+function setMode(mode) {
+  stretchMode = mode === 'stretch';
+  document.getElementById('btn-pad').classList.toggle('active', !stretchMode);
+  document.getElementById('btn-stretch').classList.toggle('active', stretchMode);
+  if (samples.a && samples.b) {
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
+  }
 }
 
 async function loadSample(id, input) {
@@ -172,8 +215,7 @@ function drawWaveform(canvasId, data) {
   c.lineWidth = 1;
   for (let x = 0; x < W; x++) {
     let min = 1, max = -1;
-    const start = x * step;
-    const end = Math.min(start + step, data.length);
+    const start = x * step, end = Math.min(start + step, data.length);
     for (let i = start; i < end; i++) {
       if (data[i] < min) min = data[i];
       if (data[i] > max) max = data[i];
@@ -187,14 +229,12 @@ function drawWaveform(canvasId, data) {
 }
 
 function computeMorphPreview(pos) {
+  const prep = prepareSamples();
+  if (!prep) return new Float32Array(0);
   const t = pos / 100;
-  const a = samples.a.data, b = samples.b.data;
-  const len = Math.max(a.length, b.length);
-  const result = new Float32Array(len);
-  for (let i = 0; i < len; i++) {
-    const va = i < a.length ? a[i] : 0;
-    const vb = i < b.length ? b[i] : 0;
-    result[i] = va * (1 - t) + vb * t;
+  const result = new Float32Array(prep.length);
+  for (let i = 0; i < prep.length; i++) {
+    result[i] = prep.a[i] * (1 - t) + prep.b[i] * t;
   }
   return result;
 }
@@ -204,9 +244,7 @@ function onMorphChange(val) {
   document.getElementById('morph-display').textContent = morphPos + '%';
   if (samples.a && samples.b) {
     drawWaveform('wave-result', computeMorphPreview(morphPos));
-    if (workletNode) {
-      workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
-    }
+    if (workletNode) workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
   }
 }
 
@@ -223,25 +261,17 @@ function checkReady() {
 async function playMorph() {
   if (!samples.a || !samples.b) return;
   stopPlayback();
-
   const ctx = await getAudioContext();
   if (ctx.state === 'suspended') await ctx.resume();
 
+  const prep = prepareSamples();
   workletNode = new AudioWorkletNode(ctx, 'morph-processor');
-
-  workletNode.port.postMessage({ type: 'samples', a: samples.a.data, b: samples.b.data });
+  workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
   workletNode.port.postMessage({ type: 'morph', value: morphPos / 100 });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
   workletNode.port.postMessage({ type: 'play' });
-
-  workletNode.port.onmessage = (e) => {
-    if (e.data.type === 'ended') {
-      setStoppedUI();
-    }
-  };
-
+  workletNode.port.onmessage = (e) => { if (e.data.type === 'ended') setStoppedUI(); };
   workletNode.connect(ctx.destination);
-  isPlaying = true;
 
   document.getElementById('status-dot').className = 'dot playing';
   document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
@@ -255,7 +285,6 @@ function stopPlayback() {
     workletNode.disconnect();
     workletNode = null;
   }
-  isPlaying = false;
   setStoppedUI();
 }
 
@@ -265,19 +294,13 @@ function setStoppedUI() {
   document.getElementById('status-text').textContent = ready ? 'listo' : 'carga los dos samples para comenzar';
   document.getElementById('btn-stop').disabled = true;
   document.getElementById('btn-play').disabled = !ready;
-  isPlaying = false;
 }
 
 function toggleLoop() {
   loopEnabled = !loopEnabled;
   const btn = document.getElementById('btn-loop');
-  if (loopEnabled) {
-    btn.classList.add('loop-on');
-    btn.textContent = '⟳ loop on';
-  } else {
-    btn.classList.remove('loop-on');
-    btn.textContent = '⟳ loop';
-  }
+  btn.classList.toggle('loop-on', loopEnabled);
+  btn.textContent = loopEnabled ? '⟳ loop on' : '⟳ loop';
   if (workletNode) {
     workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
     document.getElementById('status-text').textContent = loopEnabled ? 'reproduciendo en loop...' : 'reproduciendo...';
