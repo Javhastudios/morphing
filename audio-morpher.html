@@ -615,8 +615,10 @@ function syncLfoToSample() {
     samples.b ? samples.b.duration : 0
   );
   if (dur <= 0) return;
+  const smoothingCompensation = 0.5; // seconds to compensate for worklet smoothing
   const isPingPong = lfoMode === 'ping' || lfoMode === 'pong';
-  const hz = 1 / (isPingPong ? dur * 2 : dur);
+  const effectiveDur = dur + smoothingCompensation;
+  const hz = 1 / (isPingPong ? effectiveDur * 2 : effectiveDur);
   setLfoHz(hz);
 }
 
@@ -661,13 +663,13 @@ async function toggleLfo() {
 
     lfoLastTime = null;
     if (!workletNode) {
-      await playMorph(); // playMorph reads morphPos which is already snapped
+      await playMorph();
     } else {
-      // force morphSmooth to start value instantly via play message
       workletNode.port.postMessage({ type: 'morph', value: startPos });
-      await new Promise(r => setTimeout(r, 200)); // wait for smoothing to settle
+      await new Promise(r => setTimeout(r, 200));
       workletNode.port.postMessage({ type: 'play' });
     }
+    if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: 0.02 });
     lfoRafId = requestAnimationFrame(lfoTick);
   } else {
     btn.textContent = '▶ iniciar barrido';
@@ -725,6 +727,7 @@ function stopLfoUI() {
   document.getElementById('btn-lfo-toggle').textContent = '▶ iniciar barrido';
   document.getElementById('btn-lfo-toggle').classList.remove('lfo-on');
   lfoRafId = null;
+  if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: 0.15 });
   drawLfoViz();
 }
 

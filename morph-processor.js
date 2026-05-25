@@ -24,6 +24,7 @@ class MorphProcessor extends AudioWorkletProcessor {
         this.morphSmooth = this.morphTarget; // respect already-set target
       }
       if (d.type === 'morph') this.morphTarget = d.value;
+      if (d.type === 'smoothTime') this.smoothTime = d.value;
       if (d.type === 'gainA') this.gainA = d.value;
       if (d.type === 'gainB') this.gainB = d.value;
       if (d.type === 'play') { this.morphSmooth = this.morphTarget; this.pos = 0; this.playing = true; }
@@ -55,7 +56,7 @@ class MorphProcessor extends AudioWorkletProcessor {
     const channels = this.stereo ? 2 : 1;
     const chLenA = this.samplesA.length / channels;
     const chLenB = this.samplesB.length / channels;
-    const smoothTime = 0.15;
+    const smoothTime = this.smoothTime !== undefined ? this.smoothTime : 0.15;
     const coeff = 1 - Math.exp(-1 / (sampleRate * smoothTime));
 
     for (let i = 0; i < outL.length; i++) {
