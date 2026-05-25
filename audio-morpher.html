@@ -301,6 +301,16 @@ function monoPreview(sample) {
   return mono;
 }
 
+function updateEnvelopeDuration() {
+  if (!samples.a || !samples.b) return;
+  const newDur = Math.max(samples.a.duration, samples.b.duration);
+  const oldDur = envDuration();
+  if (Math.abs(newDur - oldDur) < 0.01) return;
+  const scale = newDur / oldDur;
+  envPoints = envPoints.map(p => ({ t: p.t * scale, v: p.v }));
+  drawAdsrViz();
+}
+
 async function loadSample(id, input) {
   const file = input.files[0];
   if (!file) return;
@@ -318,6 +328,7 @@ async function loadSample(id, input) {
     document.getElementById('card-' + id).classList.add('loaded');
     drawWaveform('wave-' + id, monoPreview(samples[id]));
     checkReady();
+    updateEnvelopeDuration();
   } catch(e) {
     nameEl.textContent = 'error al cargar';
     infoEl.textContent = e.message;
