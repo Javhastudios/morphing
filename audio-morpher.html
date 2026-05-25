@@ -81,6 +81,11 @@ input[type="range"].morph-slider::-moz-range-thumb { width: 18px; height: 18px; 
       <span class="mode-label">duración:</span>
       <button class="btn" id="btn-mode-pad" onclick="setDurationMode('pad')">⬜ ceros</button>
       <button class="btn" id="btn-mode-stretch" onclick="setDurationMode('stretch')">⇔ stretch fijo</button>
+      <span id="stretch-master" style="display:none; align-items:center; gap:6px;">
+        <span class="mode-label">master:</span>
+        <button class="btn active" id="btn-master-a" onclick="setStretchMaster('a')">A</button>
+        <button class="btn" id="btn-master-b" onclick="setStretchMaster('b')">B</button>
+      </span>
       <button class="btn active" id="btn-mode-morph" onclick="setDurationMode('morph')">∿ morph</button>
     </div>
     <div class="morph-header">
@@ -117,10 +122,11 @@ let samples = { a: null, b: null };
 let morphPos = 0;
 let loopEnabled = false;
 let durationMode = 'morph';
+let stretchMaster = 'a';
 
 const hints = {
   pad:     'el sample más corto se rellena con silencio hasta la duración del más largo',
-  stretch: 'ambos samples se estiran a la duración del más largo — longitud fija',
+  stretch: 'ambos samples se estiran a la duración del sample master',
   morph:   'la duración se interpola con el morph — ambos samples se estiran simétricamente'
 };
 
@@ -156,7 +162,9 @@ function prepareSamples() {
     return { a: samples.a.data, b: samples.b.data };
   }
 
-  const targetLen = Math.max(lenA, lenB);
+  const targetLen = durationMode === 'stretch'
+    ? (stretchMaster === 'a' ? lenA : lenB)
+    : Math.max(lenA, lenB);
 
   if (durationMode === 'stretch') {
     return {
@@ -178,6 +186,9 @@ function interpolatedLength(t) {
   if (durationMode === 'morph') {
     return Math.round(samples.a.data.length * (1 - t) + samples.b.data.length * t);
   }
+  if (durationMode === 'stretch') {
+    return stretchMaster === 'a' ? samples.a.data.length : samples.b.data.length;
+  }
   return Math.max(samples.a.data.length, samples.b.data.length);
 }
 
@@ -187,6 +198,8 @@ function setDurationMode(mode) {
     document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode);
   });
   document.getElementById('hint-text').textContent = hints[mode];
+  const masterEl = document.getElementById('stretch-master');
+  masterEl.style.display = mode === 'stretch' ? 'inline-flex' : 'none';
   if (samples.a && samples.b) {
     updateDurationDisplay(morphPos);
     drawWaveform('wave-result', computeMorphPreview(morphPos));
@@ -195,6 +208,20 @@ function setDurationMode(mode) {
     const prep = prepareSamples();
     workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
     workletNode.port.postMessage({ type: 'durationMode', value: mode });
+  }
+}
+
+function setStretchMaster(master) {
+  stretchMaster = master;
+  document.getElementById('btn-master-a').classList.toggle('active', master === 'a');
+  document.getElementById('btn-master-b').classList.toggle('active', master === 'b');
+  if (samples.a && samples.b) {
+    updateDurationDisplay(morphPos);
+    drawWaveform('wave-result', computeMorphPreview(morphPos));
+  }
+  if (workletNode) {
+    const prep = prepareSamples();
+    workletNode.port.postMessage({ type: 'samples', a: prep.a, b: prep.b });
   }
 }
 
