@@ -200,36 +200,19 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
     <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
   </div>
 
-  <!-- ADSR SECTION -->
+  <!-- ENVELOPE SECTION -->
   <div class="section">
-    <div class="section-title">ADSR del crossfade</div>
-    <div class="adsr-viz"><canvas class="adsr-canvas" id="adsr-canvas"></canvas></div>
-    <div class="adsr-grid">
-      <div class="adsr-knob">
-        <label>Attack</label>
-        <input type="range" id="adsr-a" min="0.01" max="5" step="0.01" value="0.5" oninput="updateAdsr()">
-        <span class="adsr-val" id="adsr-a-val">0.50s</span>
-      </div>
-      <div class="adsr-knob">
-        <label>Decay</label>
-        <input type="range" id="adsr-d" min="0.01" max="5" step="0.01" value="0.3" oninput="updateAdsr()">
-        <span class="adsr-val" id="adsr-d-val">0.30s</span>
-      </div>
-      <div class="adsr-knob">
-        <label>Sustain</label>
-        <input type="range" id="adsr-s" min="0" max="1" step="0.01" value="0.7" oninput="updateAdsr()">
-        <span class="adsr-val" id="adsr-s-val">70%</span>
-      </div>
-      <div class="adsr-knob">
-        <label>Release</label>
-        <input type="range" id="adsr-r" min="0.01" max="5" step="0.01" value="0.8" oninput="updateAdsr()">
-        <span class="adsr-val" id="adsr-r-val">0.80s</span>
-      </div>
+    <div class="section-title">envolvente del crossfade</div>
+    <div class="adsr-viz" style="height:120px; cursor:crosshair;">
+      <canvas class="adsr-canvas" id="adsr-canvas" style="width:100%;height:100%;display:block;"></canvas>
     </div>
-    <div class="row">
-      <button class="btn" id="btn-adsr-toggle" onclick="toggleAdsr()">▶ disparar ADSR</button>
-      <span class="lbl" id="adsr-phase-label" style="margin-left:8px;">—</span>
+    <div class="row" style="margin-top:0.75rem;">
+      <span class="lbl">duración total: <strong id="env-duration">2.00s</strong></span>
+      <button class="btn" onclick="resetEnvelope()">↺ reset</button>
+      <button class="btn" id="btn-adsr-toggle" onclick="toggleAdsr()">▶ disparar envolvente</button>
+      <span class="lbl" id="adsr-phase-label" style="color:#666;">—</span>
     </div>
+    <p class="hint">clic para añadir punto · doble clic para borrar · arrastrar para mover · el punto más a la derecha define la duración</p>
   </div>
 
   <!-- PRESETS SECTION -->
@@ -845,29 +828,59 @@ window.addEventListener('resize', () => {
   drawAdsrViz();
 });
 
-// ── ADSR ──────────────────────────────────────────────
-let adsr = { a: 0.5, d: 0.3, s: 0.7, r: 0.8 };
+// ── FREE ENVELOPE EDITOR ──────────────────────────────
+let envPoints = [ { t: 0, v: 0 }, { t: 2, v: 0 } ]; // t=seconds, v=0-1 crossfade
+let envDragging = null;
 let adsrActive = false;
-let adsrPhase = 'idle'; // idle | attack | decay | sustain | release
 let adsrRafId = null;
 let adsrLastTime = null;
-let adsrPos = 0; // current crossfade position 0-1
-let adsrPhaseTime = 0;
+let adsrElapsed = 0;
+const ENV_PAD = 12;
+const POINT_RADIUS = 6;
 
-function updateAdsr() {
-  adsr.a = parseFloat(document.getElementById('adsr-a').value);
-  adsr.d = parseFloat(document.getElementById('adsr-d').value);
-  adsr.s = parseFloat(document.getElementById('adsr-s').value);
-  adsr.r = parseFloat(document.getElementById('adsr-r').value);
-  document.getElementById('adsr-a-val').textContent = adsr.a.toFixed(2) + 's';
-  document.getElementById('adsr-d-val').textContent = adsr.d.toFixed(2) + 's';
-  document.getElementById('adsr-s-val').textContent = Math.round(adsr.s * 100) + '%';
-  document.getElementById('adsr-r-val').textContent = adsr.r.toFixed(2) + 's';
-  drawAdsrViz();
+function envDuration() {
+  return Math.max(...envPoints.map(p => p.t), 0.1);
+}
+
+function getEnvCanvas() { return document.getElementById('adsr-canvas'); }
+
+function envCanvasCoords(canvas, e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const y = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  const W = rect.width, H = rect.height;
+  const w = W - ENV_PAD * 2, h = H - ENV_PAD * 2;
+  const dur = envDuration();
+  const t = ((x - ENV_PAD) / w) * dur;
+  const v = 1 - (y - ENV_PAD) / h;
+  return { t: Math.max(0, t), v: Math.max(0, Math.min(1, v)) };
+}
+
+function envToCanvas(canvas, t, v) {
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  const w = W - ENV_PAD * 2, h = H - ENV_PAD * 2;
+  const dur = envDuration();
+  return {
+    x: ENV_PAD + (t / dur) * w,
+    y: ENV_PAD + (1 - v) * h
+  };
+}
+
+function findNearestPoint(canvas, e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const my = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  let nearest = -1, nearDist = Infinity;
+  envPoints.forEach((p, i) => {
+    const { x, y } = envToCanvas(canvas, p.t, p.v);
+    const d = Math.hypot(x - mx, y - my);
+    if (d < nearDist) { nearDist = d; nearest = i; }
+  });
+  return nearDist < POINT_RADIUS * 2.5 ? nearest : -1;
 }
 
 function drawAdsrViz() {
-  const canvas = document.getElementById('adsr-canvas');
+  const canvas = getEnvCanvas();
   if (!canvas) return;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = canvas.offsetWidth * dpr;
@@ -877,79 +890,127 @@ function drawAdsrViz() {
   const W = canvas.offsetWidth, H = canvas.offsetHeight;
   c.clearRect(0, 0, W, H);
 
-  const total = adsr.a + adsr.d + 0.5 + adsr.r; // 0.5 = sustain display time
-  const pad = 12;
-  const w = W - pad * 2;
-  const h = H - pad * 2;
+  // grid lines
+  c.strokeStyle = '#222'; c.lineWidth = 0.5; c.setLineDash([3, 4]);
+  [0.25, 0.5, 0.75].forEach(v => {
+    const y = ENV_PAD + (1 - v) * (H - ENV_PAD * 2);
+    c.beginPath(); c.moveTo(ENV_PAD, y); c.lineTo(W - ENV_PAD, y); c.stroke();
+  });
+  c.setLineDash([]);
 
-  const tx = t => pad + (t / total) * w;
-  const ty = v => pad + (1 - v) * h;
+  // axis labels
+  c.fillStyle = '#333'; c.font = '10px system-ui'; c.textAlign = 'right';
+  c.fillText('B', ENV_PAD - 3, ENV_PAD + 4);
+  c.fillText('A', ENV_PAD - 3, H - ENV_PAD + 4);
 
-  const tA = adsr.a;
-  const tD = adsr.a + adsr.d;
-  const tS = adsr.a + adsr.d + 0.5;
-  const tR = total;
+  const sorted = [...envPoints].sort((a, b) => a.t - b.t);
 
-  // grid line at sustain level
-  c.beginPath(); c.strokeStyle = '#222'; c.lineWidth = 1;
-  c.setLineDash([3, 3]);
-  c.moveTo(pad, ty(adsr.s)); c.lineTo(W - pad, ty(adsr.s));
-  c.stroke(); c.setLineDash([]);
-
-  // ADSR curve
-  c.beginPath();
-  c.strokeStyle = '#7a50b0';
-  c.lineWidth = 2;
-  c.moveTo(tx(0), ty(0));
-  c.lineTo(tx(tA), ty(1));       // attack → peak
-  c.lineTo(tx(tD), ty(adsr.s));  // decay → sustain
-  c.lineTo(tx(tS), ty(adsr.s));  // sustain hold
-  c.lineTo(tx(tR), ty(0));       // release → 0
-  c.stroke();
-
-  // labels
-  c.fillStyle = '#444';
-  c.font = '10px system-ui';
-  c.textAlign = 'center';
-  c.fillText('A', tx(tA / 2), H - 2);
-  c.fillText('D', tx(tA + adsr.d / 2), H - 2);
-  c.fillText('S', tx(tD + 0.25), H - 2);
-  c.fillText('R', tx(tS + adsr.r / 2), H - 2);
+  // curve
+  if (sorted.length >= 2) {
+    c.beginPath(); c.strokeStyle = '#7a50b0'; c.lineWidth = 2;
+    sorted.forEach((p, i) => {
+      const { x, y } = envToCanvas(canvas, p.t, p.v);
+      i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+    });
+    c.stroke();
+  }
 
   // playhead
-  if (adsrActive && adsrPhase !== 'idle') {
-    let elapsed = 0;
-    if (adsrPhase === 'attack') elapsed = adsrPhaseTime;
-    else if (adsrPhase === 'decay') elapsed = tA + adsrPhaseTime;
-    else if (adsrPhase === 'sustain') elapsed = tD + adsrPhaseTime;
-    else if (adsrPhase === 'release') elapsed = tS + adsrPhaseTime;
-    const px = tx(Math.min(elapsed, tR));
+  if (adsrActive) {
+    const dur = envDuration();
+    const px = envToCanvas(canvas, Math.min(adsrElapsed, dur), 0).x;
     c.beginPath(); c.strokeStyle = '#a07ad0'; c.lineWidth = 1;
     c.moveTo(px, 0); c.lineTo(px, H); c.stroke();
   }
+
+  // points
+  sorted.forEach(p => {
+    const { x, y } = envToCanvas(canvas, p.t, p.v);
+    c.beginPath();
+    c.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
+    c.fillStyle = envDragging !== null && envPoints[envDragging] === p ? '#fff' : '#a07ad0';
+    c.fill();
+    c.strokeStyle = '#7a50b0'; c.lineWidth = 1.5; c.stroke();
+  });
+
+  // duration label
+  document.getElementById('env-duration').textContent = envDuration().toFixed(2) + 's';
+}
+
+function getEnvValueAt(t) {
+  const sorted = [...envPoints].sort((a, b) => a.t - b.t);
+  if (t <= sorted[0].t) return sorted[0].v;
+  if (t >= sorted[sorted.length - 1].t) return sorted[sorted.length - 1].v;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const p0 = sorted[i], p1 = sorted[i + 1];
+    if (t >= p0.t && t <= p1.t) {
+      const frac = (t - p0.t) / (p1.t - p0.t);
+      return p0.v + frac * (p1.v - p0.v);
+    }
+  }
+  return 0;
+}
+
+function resetEnvelope() {
+  envPoints = [{ t: 0, v: 0 }, { t: 2, v: 0 }];
+  drawAdsrViz();
+}
+
+// Canvas interaction
+function initEnvCanvas() {
+  const canvas = getEnvCanvas();
+  if (!canvas) return;
+
+  let lastClickTime = 0;
+
+  canvas.addEventListener('mousedown', e => {
+    const now = Date.now();
+    const idx = findNearestPoint(canvas, e);
+    if (now - lastClickTime < 300 && idx !== -1) {
+      // double click → delete
+      if (envPoints.length > 2) { envPoints.splice(idx, 1); drawAdsrViz(); }
+      return;
+    }
+    lastClickTime = now;
+    if (idx !== -1) {
+      envDragging = idx;
+    } else {
+      // add point
+      const { t, v } = envCanvasCoords(canvas, e);
+      envPoints.push({ t, v });
+      envDragging = envPoints.length - 1;
+      drawAdsrViz();
+    }
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (envDragging === null) return;
+    const { t, v } = envCanvasCoords(canvas, e);
+    envPoints[envDragging].t = Math.max(0, t);
+    envPoints[envDragging].v = v;
+    drawAdsrViz();
+  });
+
+  canvas.addEventListener('mouseup', () => { envDragging = null; });
+  canvas.addEventListener('mouseleave', () => { envDragging = null; });
 }
 
 async function toggleAdsr() {
-  if (adsrActive) {
-    stopAdsr();
-    return;
-  }
+  if (adsrActive) { stopAdsr(); return; }
   adsrActive = true;
-  adsrPhase = 'attack';
-  adsrPhaseTime = 0;
-  adsrPos = 0;
+  adsrElapsed = 0;
   adsrLastTime = null;
-  document.getElementById('btn-adsr-toggle').textContent = '■ detener ADSR';
+  document.getElementById('btn-adsr-toggle').textContent = '■ detener envolvente';
   document.getElementById('btn-adsr-toggle').classList.add('lfo-on');
+  document.getElementById('adsr-phase-label').textContent = '0.00s';
   if (!workletNode) await playMorph();
   adsrRafId = requestAnimationFrame(adsrTick);
 }
 
 function stopAdsr() {
   adsrActive = false;
-  adsrPhase = 'idle';
   if (adsrRafId) { cancelAnimationFrame(adsrRafId); adsrRafId = null; }
-  document.getElementById('btn-adsr-toggle').textContent = '▶ disparar ADSR';
+  document.getElementById('btn-adsr-toggle').textContent = '▶ disparar envolvente';
   document.getElementById('btn-adsr-toggle').classList.remove('lfo-on');
   document.getElementById('adsr-phase-label').textContent = '—';
   drawAdsrViz();
@@ -960,36 +1021,26 @@ function adsrTick(ts) {
   if (adsrLastTime === null) adsrLastTime = ts;
   const dt = Math.min((ts - adsrLastTime) / 1000, 0.1);
   adsrLastTime = ts;
+  adsrElapsed += dt;
 
-  adsrPhaseTime += dt;
-  let crossPos = 0;
-
-  if (adsrPhase === 'attack') {
-    crossPos = Math.min(adsrPhaseTime / adsr.a, 1);
-    document.getElementById('adsr-phase-label').textContent = 'attack';
-    if (adsrPhaseTime >= adsr.a) { adsrPhase = 'decay'; adsrPhaseTime = 0; }
-  } else if (adsrPhase === 'decay') {
-    crossPos = 1 - (1 - adsr.s) * Math.min(adsrPhaseTime / adsr.d, 1);
-    document.getElementById('adsr-phase-label').textContent = 'decay';
-    if (adsrPhaseTime >= adsr.d) { adsrPhase = 'sustain'; adsrPhaseTime = 0; }
-  } else if (adsrPhase === 'sustain') {
-    crossPos = adsr.s;
-    document.getElementById('adsr-phase-label').textContent = 'sustain';
-    // sustain holds for 0.5s then goes to release automatically
-    if (adsrPhaseTime >= 0.5) { adsrPhase = 'release'; adsrPhaseTime = 0; }
-  } else if (adsrPhase === 'release') {
-    crossPos = adsr.s * Math.max(1 - adsrPhaseTime / adsr.r, 0);
-    document.getElementById('adsr-phase-label').textContent = 'release';
-    if (adsrPhaseTime >= adsr.r) { crossPos = 0; stopAdsr(); setMorphPos(0); return; }
+  const dur = envDuration();
+  if (adsrElapsed >= dur) {
+    const finalV = getEnvValueAt(dur);
+    setMorphPos(Math.round(finalV * 100));
+    stopAdsr();
+    return;
   }
 
-  setMorphPos(Math.round(crossPos * 100));
+  const v = getEnvValueAt(adsrElapsed);
+  setMorphPos(Math.round(v * 100));
+  document.getElementById('adsr-phase-label').textContent = adsrElapsed.toFixed(2) + 's';
   drawAdsrViz();
   adsrRafId = requestAnimationFrame(adsrTick);
 }
 
 drawLfoViz();
 drawAdsrViz();
+setTimeout(initEnvCanvas, 100);
 </script>
 </body>
 </html>
