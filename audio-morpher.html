@@ -695,54 +695,55 @@ function lfoTick(ts) {
   lfoLastTime = ts;
   lfoElapsed += dt;
 
-  const dur = getLfoDuration();
-  const baseDur = getLfoBaseDuration() / lfoSpeedMult;
+  const maxDur = Math.max(
+    samples.a ? samples.a.duration : 2,
+    samples.b ? samples.b.duration : 2
+  ) / lfoSpeedMult;
 
-  // single direction modes: elapsed goes from 0 to baseDur/2
-  // ping-pong modes: elapsed goes from 0 to baseDur (full cycle)
-  let phase, done = false;
+  let done = false;
 
   if (lfoMode === 'ab') {
-    phase = Math.min(lfoElapsed / dur, 1);
-    if (lfoElapsed >= dur) { phase = 1; done = true; }
+    const phase = Math.min(lfoElapsed / maxDur, 1);
     lfoPhase = phase;
-    const envPos = applyEnvelope(phase);
-    setMorphPos(Math.round(envPos * 100));
+    setMorphPos(Math.round(applyEnvelope(phase) * 100));
+    if (lfoElapsed >= maxDur) { setMorphPos(100); done = true; }
+
   } else if (lfoMode === 'ba') {
-    phase = Math.min(lfoElapsed / dur, 1);
-    if (lfoElapsed >= dur) { phase = 1; done = true; }
+    const phase = Math.min(lfoElapsed / maxDur, 1);
     lfoPhase = phase;
-    const envPos = 1 - applyEnvelope(phase);
-    setMorphPos(Math.round(envPos * 100));
+    setMorphPos(Math.round((1 - applyEnvelope(phase)) * 100));
+    if (lfoElapsed >= maxDur) { setMorphPos(0); done = true; }
+
   } else if (lfoMode === 'ping') {
-    // half duration = A→B, second half = B→A
-    const halfDur = dur / 2;
-    if (lfoElapsed <= halfDur) {
-      phase = lfoElapsed / halfDur;
+    // A→B in maxDur, then B→A in maxDur = total 2*maxDur
+    const totalDur = maxDur * 2;
+    if (lfoElapsed <= maxDur) {
+      const phase = lfoElapsed / maxDur;
       lfoPhase = phase * 0.5;
       lfoDirection = 1;
       setMorphPos(Math.round(applyEnvelope(phase) * 100));
     } else {
-      phase = (lfoElapsed - halfDur) / halfDur;
+      const phase = (lfoElapsed - maxDur) / maxDur;
       lfoPhase = 0.5 + phase * 0.5;
       lfoDirection = -1;
       setMorphPos(Math.round((1 - applyEnvelope(phase)) * 100));
     }
-    if (lfoElapsed >= dur) { done = true; setMorphPos(0); }
-  } else { // pong: B→A→B
-    const halfDur = dur / 2;
-    if (lfoElapsed <= halfDur) {
-      phase = lfoElapsed / halfDur;
+    if (lfoElapsed >= totalDur) { setMorphPos(0); done = true; }
+
+  } else { // pong: B→A then A→B
+    const totalDur = maxDur * 2;
+    if (lfoElapsed <= maxDur) {
+      const phase = lfoElapsed / maxDur;
       lfoPhase = 0.5 - phase * 0.5;
       lfoDirection = -1;
       setMorphPos(Math.round((1 - applyEnvelope(phase)) * 100));
     } else {
-      phase = (lfoElapsed - halfDur) / halfDur;
+      const phase = (lfoElapsed - maxDur) / maxDur;
       lfoPhase = phase * 0.5;
       lfoDirection = 1;
       setMorphPos(Math.round(applyEnvelope(phase) * 100));
     }
-    if (lfoElapsed >= dur) { done = true; setMorphPos(100); }
+    if (lfoElapsed >= totalDur) { setMorphPos(100); done = true; }
   }
 
   if (done) { lfoActive = false; stopLfoUI(); return; }
