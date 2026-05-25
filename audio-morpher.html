@@ -477,7 +477,14 @@ async function playMorph() {
   workletNode.port.postMessage({ type: 'gainB', value: gainB });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
   workletNode.port.postMessage({ type: 'play' });
-  workletNode.port.onmessage = (e) => { if (e.data.type === 'ended') { if (isRecording) stopRecord(); setStoppedUI(); } };
+  workletNode.port.onmessage = (e) => {
+    if (e.data.type === 'ended') {
+      if (isRecording) stopRecord();
+      if (workletNode) { workletNode.disconnect(); workletNode = null; }
+      if (lfoActive) { lfoActive = false; stopLfoUI(); }
+      setStoppedUI();
+    }
+  };
 
   if (isRecording && recordingDest) {
     workletNode.connect(recordingDest);
@@ -600,13 +607,16 @@ async function toggleLfo() {
     else if (lfoMode === 'pong') { lfoPhase = 1; lfoDirection = -1; }
     else /* ping */              { lfoPhase = 0; lfoDirection = 1; }
     lfoLastTime = null;
-    if (!workletNode) await playMorph();
+    if (!workletNode) {
+      await playMorph();
+    } else {
+      workletNode.port.postMessage({ type: 'play' });
+    }
     lfoRafId = requestAnimationFrame(lfoTick);
   } else {
     btn.textContent = '▶ iniciar barrido';
     btn.classList.remove('lfo-on');
-    if (lfoRafId) cancelAnimationFrame(lfoRafId);
-    lfoRafId = null;
+    if (lfoRafId) { cancelAnimationFrame(lfoRafId); lfoRafId = null; }
     drawLfoViz();
   }
 }
