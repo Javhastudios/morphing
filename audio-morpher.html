@@ -155,6 +155,7 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <button class="btn primary" id="btn-play" onclick="playMorph()" disabled>▶ reproducir</button>
       <button class="btn" id="btn-stop" onclick="stopPlayback()" disabled>■ detener</button>
       <button class="btn" id="btn-loop" onclick="toggleLoop()">⟳ loop</button>
+      <button class="btn" id="btn-export" onclick="exportCurrent()" disabled>↓ exportar posición</button>
       <div class="status">
         <span class="dot" id="status-dot"></span>
         <span id="status-text">carga los dos samples para comenzar</span>
@@ -207,7 +208,6 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
     <div class="row">
       <button class="btn" id="btn-lfo-toggle" onclick="toggleLfo()">▶ iniciar barrido</button>
       <button class="btn" id="btn-lfo-export" onclick="exportLfo()" disabled>↓ exportar WAV</button>
-      <button class="btn" id="btn-export" onclick="exportCurrent()" disabled>↓ exportar posición</button>
     </div>
     <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
   </div>
@@ -716,6 +716,7 @@ function stopLfoUI() {
   document.getElementById('btn-lfo-toggle').textContent = '▶ iniciar barrido';
   document.getElementById('btn-lfo-toggle').classList.remove('lfo-on');
   lfoRafId = null;
+  if (!workletNode) setStoppedUI();
   drawLfoViz();
 }
 
