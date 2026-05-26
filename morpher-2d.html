@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Morpher 2D</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #e8e8e8; min-height: 100vh; padding: 2rem; }
+.morpher { max-width: 720px; margin: 0 auto; }
+h2 { font-size: 22px; font-weight: 500; margin-bottom: 0.25rem; color: #fff; }
+.subtitle { font-size: 13px; color: #888; margin-bottom: 2rem; }
+
+.section { background: #1a1a1a; border: 0.5px solid #333; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.section-title { font-size: 12px; font-weight: 500; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.row:last-child { margin-bottom: 0; }
+.lbl { font-size: 12px; color: #555; white-space: nowrap; }
+
+/* CORNERS GRID */
+.corners-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.corner-card {
+  background: #111;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: border-color 0.2s;
+}
+.corner-card.loaded { border-color: #444; }
+.corner-label { font-size: 10px; font-weight: 500; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center; }
+.corner-dot { width: 6px; height: 6px; border-radius: 50%; background: #333; }
+.corner-dot.tl { background: #5aa0d0; }
+.corner-dot.tr { background: #d07a50; }
+.corner-dot.bl { background: #50d07a; }
+.corner-dot.br { background: #d0a050; }
+.corner-name { font-size: 12px; color: #aaa; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 18px; }
+.corner-info { font-size: 11px; color: #555; margin-bottom: 0.5rem; min-height: 14px; }
+.gain-row { display: flex; align-items: center; gap: 6px; margin-bottom: 0.5rem; }
+.gain-label { font-size: 11px; color: #555; min-width: 32px; }
+.gain-val { font-size: 11px; color: #666; min-width: 28px; text-align: right; }
+input[type="range"].gain-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 3px; background: #2a2a2a; border-radius: 2px; outline: none; cursor: pointer; }
+input[type="range"].gain-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+input[type="range"].gain-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+.upload-btn { width: 100%; padding: 5px 10px; font-size: 12px; cursor: pointer; border-radius: 7px; border: 0.5px solid #333; background: #1a1a1a; color: #aaa; display: flex; align-items: center; justify-content: center; gap: 5px; transition: background 0.15s; }
+.upload-btn:hover { background: #222; color: #fff; }
+input[type="file"] { display: none; }
+.preview-btn { width: 100%; padding: 5px 10px; font-size: 12px; cursor: pointer; border-radius: 7px; border: 0.5px solid #333; background: transparent; color: #888; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; transition: background 0.15s; }
+.preview-btn:hover { background: #1a1a1a; color: #ccc; }
+.preview-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* XY PAD */
+.xy-pad-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* square */
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.xy-pad-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 12px;
+}
+.xy-corner-label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 500;
+  color: #444;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.xy-corner-label.tl { top: 10px; left: 12px; color: #5aa0d0; }
+.xy-corner-label.tr { top: 10px; right: 12px; color: #d07a50; text-align: right; }
+.xy-corner-label.bl { bottom: 10px; left: 12px; color: #50d07a; }
+.xy-corner-label.br { bottom: 10px; right: 12px; color: #d0a050; text-align: right; }
+
+/* WAVEFORM */
+.waveform-container { height: 56px; border-radius: 8px; background: #111; border: 0.5px solid #2a2a2a; margin-bottom: 1rem; overflow: hidden; }
+canvas.waveform { width: 100%; height: 100%; display: block; }
+
+/* BUTTONS */
+.btn { padding: 7px 14px; font-size: 13px; cursor: pointer; border-radius: 8px; border: 0.5px solid #444; background: transparent; color: #ccc; display: inline-flex; align-items: center; gap: 5px; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.btn:hover { background: #222; color: #fff; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn.active { background: #1a2a3a; color: #5aa0d0; border-color: #5aa0d0; }
+.btn.loop-on { background: #1a3a2a; color: #1D9E75; border-color: #1D9E75; }
+
+.status { font-size: 12px; color: #666; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; }
+.dot.ready { background: #639922; }
+.dot.playing { background: #1D9E75; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+input[type="range"].lfo-slider { flex: 1; min-width: 120px; -webkit-appearance: none; appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; cursor: pointer; }
+input[type="range"].lfo-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+input[type="range"].lfo-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; cursor: pointer; border: none; }
+.lfo-unit { font-size: 12px; color: #555; }
+
+.hint { font-size: 12px; color: #444; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+<div class="morpher">
+  <h2>Audio Morpher 2D</h2>
+  <p class="subtitle">Interpolación bidimensional entre cuatro samples</p>
+
+  <!-- SAMPLES -->
+  <div class="section">
+    <div class="section-title">samples</div>
+    <div class="corners-grid">
+
+      <!-- TL -->
+      <div class="corner-card" id="card-tl">
+        <div class="corner-label">arriba izquierda <span class="corner-dot tl"></span></div>
+        <div class="corner-name" id="name-tl">sin cargar</div>
+        <div class="corner-info" id="info-tl">—</div>
+        <div class="gain-row">
+          <span class="gain-label">ganancia</span>
+          <input type="range" class="gain-slider" id="gain-tl" min="0" max="2" step="0.01" value="1" oninput="setGain('tl',this.value)">
+          <span class="gain-val" id="gain-tl-val">1.00</span>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('file-tl').click()">↑ cargar</button>
+        <input type="file" id="file-tl" accept="audio/*" onchange="loadSample('tl', this)">
+        <button class="preview-btn" id="btn-preview-tl" onclick="previewSample('tl')" disabled>▶ escuchar</button>
+      </div>
+
+      <!-- TR -->
+      <div class="corner-card" id="card-tr">
+        <div class="corner-label">arriba derecha <span class="corner-dot tr"></span></div>
+        <div class="corner-name" id="name-tr">sin cargar</div>
+        <div class="corner-info" id="info-tr">—</div>
+        <div class="gain-row">
+          <span class="gain-label">ganancia</span>
+          <input type="range" class="gain-slider" id="gain-tr" min="0" max="2" step="0.01" value="1" oninput="setGain('tr',this.value)">
+          <span class="gain-val" id="gain-tr-val">1.00</span>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('file-tr').click()">↑ cargar</button>
+        <input type="file" id="file-tr" accept="audio/*" onchange="loadSample('tr', this)">
+        <button class="preview-btn" id="btn-preview-tr" onclick="previewSample('tr')" disabled>▶ escuchar</button>
+      </div>
+
+      <!-- BL -->
+      <div class="corner-card" id="card-bl">
+        <div class="corner-label">abajo izquierda <span class="corner-dot bl"></span></div>
+        <div class="corner-name" id="name-bl">sin cargar</div>
+        <div class="corner-info" id="info-bl">—</div>
+        <div class="gain-row">
+          <span class="gain-label">ganancia</span>
+          <input type="range" class="gain-slider" id="gain-bl" min="0" max="2" step="0.01" value="1" oninput="setGain('bl',this.value)">
+          <span class="gain-val" id="gain-bl-val">1.00</span>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('file-bl').click()">↑ cargar</button>
+        <input type="file" id="file-bl" accept="audio/*" onchange="loadSample('bl', this)">
+        <button class="preview-btn" id="btn-preview-bl" onclick="previewSample('bl')" disabled>▶ escuchar</button>
+      </div>
+
+      <!-- BR -->
+      <div class="corner-card" id="card-br">
+        <div class="corner-label">abajo derecha <span class="corner-dot br"></span></div>
+        <div class="corner-name" id="name-br">sin cargar</div>
+        <div class="corner-info" id="info-br">—</div>
+        <div class="gain-row">
+          <span class="gain-label">ganancia</span>
+          <input type="range" class="gain-slider" id="gain-br" min="0" max="2" step="0.01" value="1" oninput="setGain('br',this.value)">
+          <span class="gain-val" id="gain-br-val">1.00</span>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('file-br').click()">↑ cargar</button>
+        <input type="file" id="file-br" accept="audio/*" onchange="loadSample('br', this)">
+        <button class="preview-btn" id="btn-preview-br" onclick="previewSample('br')" disabled>▶ escuchar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- XY PAD -->
+  <div class="section">
+    <div class="section-title">pad 2d</div>
+
+    <div class="xy-pad-wrap" id="xy-pad-wrap">
+      <canvas class="xy-pad-canvas" id="xy-canvas"></canvas>
+      <span class="xy-corner-label tl" id="lbl-tl">TL</span>
+      <span class="xy-corner-label tr" id="lbl-tr">TR</span>
+      <span class="xy-corner-label bl" id="lbl-bl">BL</span>
+      <span class="xy-corner-label br" id="lbl-br">BR</span>
+    </div>
+
+    <div class="waveform-container"><canvas class="waveform" id="wave-result"></canvas></div>
+
+    <div class="row">
+      <span class="lbl">duración:</span>
+      <button class="btn" id="btn-mode-pad" onclick="setDurationMode('pad')">⬜ ceros</button>
+      <button class="btn" id="btn-mode-stretch" onclick="setDurationMode('stretch')">⇔ stretch</button>
+      <button class="btn active" id="btn-mode-morph" onclick="setDurationMode('morph')">∿ morph</button>
+    </div>
+
+    <div class="row">
+      <span class="lbl">suavizado:</span>
+      <input type="range" class="lfo-slider" id="smooth-slider" min="0" max="0.5" step="0.001" value="0.15"
+        oninput="setSmoothTime(this.value)"
+        ondblclick="setSmoothTime(0.15); this.value=0.15;">
+      <span class="lfo-unit" id="smooth-val">150ms</span>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="btn-export-pos" onclick="exportPosition()" disabled>↓ exportar posición</button>
+      <button class="btn" id="btn-export-mov" onclick="exportMovement()" disabled>↓ exportar movimiento</button>
+      <div class="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">carga los cuatro samples para comenzar</span>
+      </div>
+    </div>
+
+    <p class="hint">mantén pulsado en el pad para reproducir · suelta para parar</p>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────
+let audioCtx = null;
+const corners = ['tl','tr','bl','br'];
+const samples = { tl: null, tr: null, bl: null, br: null };
+const gains   = { tl: 1,    tr: 1,    bl: 1,    br: 1    };
+let durationMode = 'morph';
+let smoothTime = 0.15;
+
+// XY position: 0,0 = TL; 1,0 = TR; 0,1 = BL; 1,1 = BR
+let padX = 0.5, padY = 0.5;
+let padActive = false;
+
+// Playback
+let workletNode = null;
+let previewSources = { tl: null, tr: null, bl: null, br: null };
+
+// Movement recording
+let movementPath = []; // [{x, y, t}]
+let movementStartTime = null;
+let isRecordingMovement = false;
+
+// ── AUDIO CONTEXT ─────────────────────────────────────
+async function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.audioWorklet.addModule('morph-processor-2d.js');
+  }
+  return audioCtx;
+}
+
+// ── GAIN ──────────────────────────────────────────────
+function setGain(id, val) {
+  gains[id] = parseFloat(val);
+  document.getElementById('gain-' + id + '-val').textContent = gains[id].toFixed(2);
+  if (workletNode) workletNode.port.postMessage({ type: 'gain', id, value: gains[id] });
+}
+
+// ── SAMPLES ───────────────────────────────────────────
+function mergeToStereo(decoded) {
+  const len = decoded.length;
+  const numCh = decoded.numberOfChannels;
+  const stereo = new Float32Array(len * 2);
+  if (numCh === 1) {
+    const mono = decoded.getChannelData(0);
+    stereo.set(mono, 0); stereo.set(mono, len);
+  } else {
+    stereo.set(decoded.getChannelData(0), 0);
+    stereo.set(decoded.getChannelData(1), len);
+  }
+  return stereo;
+}
+
+function monoPreview(data, frames) {
+  const mono = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) mono[i] = (data[i] + data[frames + i]) * 0.5;
+  return mono;
+}
+
+async function loadSample(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('name-' + id).textContent = 'cargando...';
+  try {
+    const ctx = await getAudioContext();
+    const buf = await file.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(buf);
+    const data = mergeToStereo(decoded);
+    samples[id] = { data, frames: decoded.length, sampleRate: decoded.sampleRate, duration: decoded.duration };
+    document.getElementById('name-' + id).textContent = file.name;
+    document.getElementById('info-' + id).textContent =
+      decoded.duration.toFixed(2) + 's · ' + (decoded.sampleRate/1000).toFixed(1) + 'kHz';
+    document.getElementById('card-' + id).classList.add('loaded');
+    document.getElementById('btn-preview-' + id).disabled = false;
+    drawWaveform('wave-result', computePreview());
+    checkReady();
+  } catch(e) {
+    document.getElementById('name-' + id).textContent = 'error al cargar';
+    document.getElementById('info-' + id).textContent = e.message;
+  }
+  input.value = '';
+}
+
+function checkReady() {
+  const ready = corners.every(c => samples[c]);
+  document.getElementById('btn-export-pos').disabled = !ready;
+  document.getElementById('btn-export-mov').disabled = !ready;
+  if (ready) {
+    document.getElementById('status-dot').className = 'dot ready';
+    document.getElementById('status-text').textContent = 'listo';
+    updateCornerLabels();
+  }
+}
+
+function updateCornerLabels() {
+  const names = { tl: 'TL', tr: 'TR', bl: 'BL', br: 'BR' };
+  corners.forEach(id => {
+    const el = document.getElementById('lbl-' + id);
+    el.textContent = samples[id] ? samples[id].data && document.getElementById('name-' + id).textContent.split('.')[0].slice(0,8) : names[id];
+  });
+}
+
+// ── SAMPLE PREVIEW ────────────────────────────────────
+async function previewSample(id) {
+  const ctx = await getAudioContext();
+  if (ctx.state === 'suspended') await ctx.resume();
+  if (previewSources[id]) {
+    previewSources[id].stop();
+    previewSources[id] = null;
+    document.getElementById('btn-preview-' + id).textContent = '▶ escuchar';
+    return;
+  }
+  const s = samples[id];
+  if (!s) return;
+  const abuf = ctx.createBuffer(2, s.frames, s.sampleRate);
+  abuf.copyToChannel(s.data.slice(0, s.frames), 0);
+  abuf.copyToChannel(s.data.slice(s.frames, s.frames * 2), 1);
+  const src = ctx.createBufferSource();
+  src.buffer = abuf; src.connect(ctx.destination); src.start();
+  previewSources[id] = src;
+  document.getElementById('btn-preview-' + id).textContent = '■ detener';
+  src.onended = () => {
+    previewSources[id] = null;
+    document.getElementById('btn-preview-' + id).textContent = '▶ escuchar';
+  };
+}
+
+// ── DURATION MODE ─────────────────────────────────────
+function setDurationMode(mode) {
+  durationMode = mode;
+  ['pad','stretch','morph'].forEach(m =>
+    document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode)
+  );
+  drawWaveform('wave-result', computePreview());
+}
+
+function setSmoothTime(val) {
+  smoothTime = parseFloat(val);
+  document.getElementById('smooth-val').textContent = Math.round(smoothTime * 1000) + 'ms';
+  if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: smoothTime });
+}
+
+// ── BILINEAR WEIGHTS ─────────────────────────────────
+// TL=(0,0) TR=(1,0) BL=(0,1) BR=(1,1)
+function getWeights(x, y) {
+  return {
+    tl: (1 - x) * (1 - y),
+    tr: x       * (1 - y),
+    bl: (1 - x) * y,
+    br: x       * y
+  };
+}
+
+// ── TARGET DURATION ───────────────────────────────────
+function getTargetFrames(w) {
+  const loaded = corners.filter(c => samples[c]);
+  if (!loaded.length) return 0;
+  if (durationMode === 'morph') {
+    return Math.round(loaded.reduce((sum, c) => sum + samples[c].frames * w[c], 0));
+  }
+  return Math.max(...loaded.map(c => samples[c].frames));
+}
+
+// ── STRETCH ───────────────────────────────────────────
+function stretchTo(data, frames, targetFrames) {
+  if (frames === targetFrames) return data;
+  const result = new Float32Array(targetFrames * 2);
+  const ratio = (frames - 1) / (targetFrames - 1);
+  for (let ch = 0; ch < 2; ch++) {
+    const srcOff = ch * frames, dstOff = ch * targetFrames;
+    for (let i = 0; i < targetFrames; i++) {
+      const pos = i * ratio;
+      const idx = Math.floor(pos), frac = pos - idx;
+      const v0 = data[srcOff + idx] || 0;
+      const v1 = data[srcOff + Math.min(idx + 1, frames - 1)] || 0;
+      result[dstOff + i] = v0 + frac * (v1 - v0);
+    }
+  }
+  return result;
+}
+
+function getSampleVal(data, norm, ch, frames) {
+  const offset = ch * frames;
+  const pos = norm * (frames - 1);
+  const idx = Math.floor(pos), frac = pos - idx;
+  const v0 = data[offset + idx] || 0;
+  const v1 = data[offset + Math.min(idx + 1, frames - 1)] || 0;
+  return v0 + frac * (v1 - v0);
+}
+
+// ── PREVIEW WAVEFORM ──────────────────────────────────
+function computePreview() {
+  const loaded = corners.filter(c => samples[c]);
+  if (!loaded.length) return new Float32Array(0);
+  const w = getWeights(padX, padY);
+  const targetFrames = getTargetFrames(w);
+  if (!targetFrames) return new Float32Array(0);
+  const mono = new Float32Array(targetFrames);
+  for (let i = 0; i < targetFrames; i++) {
+    const norm = targetFrames > 1 ? i / (targetFrames - 1) : 0;
+    let val = 0;
+    loaded.forEach(c => {
+      val += getSampleVal(samples[c].data, norm, 0, samples[c].frames) * gains[c] * w[c];
+    });
+    mono[i] = val;
+  }
+  return mono;
+}
+
+function drawWaveform(canvasId, data) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  c.clearRect(0, 0, W, H);
+  if (!data.length) return;
+  const step = Math.max(1, Math.floor(data.length / W));
+  const midY = H / 2;
+  c.beginPath(); c.strokeStyle = '#666'; c.lineWidth = 1;
+  for (let x = 0; x < W; x++) {
+    let min = 1, max = -1;
+    const start = x * step, end = Math.min(start + step, data.length);
+    for (let i = start; i < end; i++) {
+      if (data[i] < min) min = data[i];
+      if (data[i] > max) max = data[i];
+    }
+    const yTop = midY - max * midY * 0.9, yBot = midY - min * midY * 0.9;
+    x === 0 ? c.moveTo(x, yTop) : (c.lineTo(x, yTop), c.lineTo(x, yBot));
+  }
+  c.stroke();
+}
+
+// ── XY PAD DRAWING ────────────────────────────────────
+const CORNER_COLORS = { tl: '#5aa0d0', tr: '#d07a50', bl: '#50d07a', br: '#d0a050' };
+const CORNER_POS    = { tl: [0,0], tr: [1,0], bl: [0,1], br: [1,1] };
+
+function drawPad() {
+  const canvas = document.getElementById('xy-canvas');
+  if (!canvas) return;
+  const wrap = document.getElementById('xy-pad-wrap');
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.offsetWidth, H = wrap.offsetHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  c.clearRect(0, 0, W, H);
+
+  // background
+  c.fillStyle = '#111';
+  c.fillRect(0, 0, W, H);
+
+  // grid lines
+  c.strokeStyle = '#1e1e1e'; c.lineWidth = 0.5;
+  for (let i = 1; i < 4; i++) {
+    c.beginPath(); c.moveTo(W * i / 4, 0); c.lineTo(W * i / 4, H); c.stroke();
+    c.beginPath(); c.moveTo(0, H * i / 4); c.lineTo(W, H * i / 4); c.stroke();
+  }
+
+  // corner glow
+  const w = getWeights(padX, padY);
+  corners.forEach(id => {
+    if (!samples[id]) return;
+    const [cx, cy] = CORNER_POS[id];
+    const px = cx * W, py = cy * H;
+    const alpha = w[id];
+    const grad = c.createRadialGradient(px, py, 0, px, py, W * 0.45);
+    const col = CORNER_COLORS[id];
+    grad.addColorStop(0, col + Math.round(alpha * 0x44).toString(16).padStart(2,'0'));
+    grad.addColorStop(1, col + '00');
+    c.fillStyle = grad;
+    c.fillRect(0, 0, W, H);
+  });
+
+  // crosshair lines
+  const cx = padX * W, cy = padY * H;
+  c.strokeStyle = '#ffffff18'; c.lineWidth = 1; c.setLineDash([4, 6]);
+  c.beginPath(); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+  c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.stroke();
+  c.setLineDash([]);
+
+  // cursor
+  const r = padActive ? 10 : 7;
+  c.beginPath();
+  c.arc(cx, cy, r, 0, Math.PI * 2);
+  c.fillStyle = padActive ? '#ffffffcc' : '#ffffff66';
+  c.fill();
+  c.strokeStyle = '#fff'; c.lineWidth = 1.5;
+  c.stroke();
+
+  // weight labels near cursor
+  if (padActive) {
+    c.font = '10px system-ui'; c.fillStyle = '#ffffff88'; c.textAlign = 'center';
+    const labelOffset = 18;
+    c.fillText(Math.round(w.tl * 100) + '%', cx - labelOffset, cy - labelOffset);
+    c.fillText(Math.round(w.tr * 100) + '%', cx + labelOffset, cy - labelOffset);
+    c.fillText(Math.round(w.bl * 100) + '%', cx - labelOffset, cy + labelOffset);
+    c.fillText(Math.round(w.br * 100) + '%', cx + labelOffset, cy + labelOffset);
+  }
+
+  // border
+  c.strokeStyle = '#333'; c.lineWidth = 1;
+  c.strokeRect(0.5, 0.5, W - 1, H - 1);
+}
+
+// ── PAD INTERACTION ───────────────────────────────────
+function getPadCoords(e, rect) {
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+    y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))
+  };
+}
+
+function padStart(e) {
+  e.preventDefault();
+  if (!corners.every(c => samples[c])) return;
+  const rect = document.getElementById('xy-pad-wrap').getBoundingClientRect();
+  const { x, y } = getPadCoords(e, rect);
+  padX = x; padY = y;
+  padActive = true;
+  movementPath = [{ x, y, t: 0 }];
+  movementStartTime = performance.now();
+  isRecordingMovement = true;
+  startPlayback();
+  drawPad();
+}
+
+function padMove(e) {
+  e.preventDefault();
+  if (!padActive) return;
+  const rect = document.getElementById('xy-pad-wrap').getBoundingClientRect();
+  const { x, y } = getPadCoords(e, rect);
+  padX = x; padY = y;
+  if (isRecordingMovement) {
+    movementPath.push({ x, y, t: (performance.now() - movementStartTime) / 1000 });
+  }
+  if (workletNode) workletNode.port.postMessage({ type: 'xy', x, y });
+  drawPad();
+  drawWaveform('wave-result', computePreview());
+}
+
+function padEnd(e) {
+  e.preventDefault();
+  if (!padActive) return;
+  padActive = false;
+  isRecordingMovement = false;
+  stopPlayback();
+  drawPad();
+}
+
+function initPad() {
+  const wrap = document.getElementById('xy-pad-wrap');
+  wrap.addEventListener('mousedown', padStart);
+  wrap.addEventListener('mousemove', padMove);
+  wrap.addEventListener('mouseup', padEnd);
+  wrap.addEventListener('mouseleave', padEnd);
+  wrap.addEventListener('touchstart', padStart, { passive: false });
+  wrap.addEventListener('touchmove', padMove, { passive: false });
+  wrap.addEventListener('touchend', padEnd, { passive: false });
+  wrap.addEventListener('touchcancel', padEnd, { passive: false });
+  drawPad();
+}
+
+// ── PLAYBACK ──────────────────────────────────────────
+async function startPlayback() {
+  stopPlayback();
+  const ctx = await getAudioContext();
+  if (ctx.state === 'suspended') await ctx.resume();
+
+  const prep = prepareData();
+  workletNode = new AudioWorkletNode(ctx, 'morph-processor-2d', { outputChannelCount: [2] });
+  workletNode.port.postMessage({ type: 'samples', ...prep });
+  workletNode.port.postMessage({ type: 'xy', x: padX, y: padY });
+  workletNode.port.postMessage({ type: 'gains', tl: gains.tl, tr: gains.tr, bl: gains.bl, br: gains.br });
+  workletNode.port.postMessage({ type: 'smoothTime', value: smoothTime });
+  workletNode.port.postMessage({ type: 'durationMode', value: durationMode });
+  workletNode.port.postMessage({ type: 'play' });
+  workletNode.connect(ctx.destination);
+
+  document.getElementById('status-dot').className = 'dot playing';
+  document.getElementById('status-text').textContent = 'reproduciendo...';
+}
+
+function stopPlayback() {
+  if (workletNode) {
+    workletNode.port.postMessage({ type: 'stop' });
+    workletNode.disconnect();
+    workletNode = null;
+  }
+  const ready = corners.every(c => samples[c]);
+  document.getElementById('status-dot').className = ready ? 'dot ready' : 'dot';
+  document.getElementById('status-text').textContent = ready ? 'listo' : 'carga los cuatro samples para comenzar';
+}
+
+function prepareData() {
+  const out = {};
+  corners.forEach(id => {
+    out[id] = samples[id] ? samples[id].data : new Float32Array(2);
+    out[id + '_frames'] = samples[id] ? samples[id].frames : 1;
+  });
+  return out;
+}
+
+// ── EXPORT POSITION ───────────────────────────────────
+async function exportPosition() {
+  if (!corners.every(c => samples[c])) return;
+  const sr = Math.max(...corners.map(c => samples[c].sampleRate));
+  const w = getWeights(padX, padY);
+  const targetFrames = getTargetFrames(w);
+  const L = new Float32Array(targetFrames);
+  const R = new Float32Array(targetFrames);
+
+  for (let i = 0; i < targetFrames; i++) {
+    const norm = targetFrames > 1 ? i / (targetFrames - 1) : 0;
+    corners.forEach(id => {
+      L[i] += getSampleVal(samples[id].data, norm, 0, samples[id].frames) * gains[id] * w[id];
+      R[i] += getSampleVal(samples[id].data, norm, 1, samples[id].frames) * gains[id] * w[id];
+    });
+  }
+
+  const name = prompt('Nombre del archivo:', 'morph2d-posicion');
+  if (name === null) return;
+  downloadWav32([L, R], sr, (name.trim() || 'morph2d-posicion') + '.wav');
+}
+
+// ── EXPORT MOVEMENT ───────────────────────────────────
+async function exportMovement() {
+  if (!corners.every(c => samples[c])) return;
+  if (movementPath.length < 2) {
+    alert('Mueve el cursor en el pad primero para grabar un movimiento.');
+    return;
+  }
+  const sr = Math.max(...corners.map(c => samples[c].sampleRate));
+  const dur = movementPath[movementPath.length - 1].t;
+  if (dur < 0.01) return;
+  const totalFrames = Math.round(dur * sr);
+  const L = new Float32Array(totalFrames);
+  const R = new Float32Array(totalFrames);
+
+  const coeff = 1 - Math.exp(-1 / (sr * smoothTime));
+  let xSmooth = movementPath[0].x, ySmooth = movementPath[0].y;
+
+  for (let i = 0; i < totalFrames; i++) {
+    const elapsed = i / sr;
+    // interpolate path
+    let xTarget = movementPath[0].x, yTarget = movementPath[0].y;
+    for (let j = 0; j < movementPath.length - 1; j++) {
+      const p0 = movementPath[j], p1 = movementPath[j + 1];
+      if (elapsed >= p0.t && elapsed <= p1.t) {
+        const frac = (elapsed - p0.t) / (p1.t - p0.t);
+        xTarget = p0.x + frac * (p1.x - p0.x);
+        yTarget = p0.y + frac * (p1.y - p0.y);
+        break;
+      }
+    }
+    xSmooth += (xTarget - xSmooth) * coeff;
+    ySmooth += (yTarget - ySmooth) * coeff;
+
+    const w = getWeights(xSmooth, ySmooth);
+    const targetFrames = getTargetFrames(w);
+    const norm = targetFrames > 1 ? Math.min(i / (targetFrames - 1), 1) : 0;
+    corners.forEach(id => {
+      L[i] += getSampleVal(samples[id].data, norm, 0, samples[id].frames) * gains[id] * w[id];
+      R[i] += getSampleVal(samples[id].data, norm, 1, samples[id].frames) * gains[id] * w[id];
+    });
+  }
+
+  const name = prompt('Nombre del archivo:', 'morph2d-movimiento');
+  if (name === null) return;
+  downloadWav32([L, R], sr, (name.trim() || 'morph2d-movimiento') + '.wav');
+}
+
+// ── WAV ENCODER ───────────────────────────────────────
+function downloadWav32(channels, sampleRate, filename) {
+  const numCh = channels.length, numSamples = channels[0].length, bps = 4;
+  const buf = new ArrayBuffer(44 + numSamples * numCh * bps);
+  const v = new DataView(buf);
+  const w = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + numSamples * numCh * bps, true);
+  w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 3, true); v.setUint16(22, numCh, true);
+  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * numCh * bps, true);
+  v.setUint16(32, numCh * bps, true); v.setUint16(34, 32, true);
+  w(36, 'data'); v.setUint32(40, numSamples * numCh * bps, true);
+  let off = 44;
+  for (let i = 0; i < numSamples; i++)
+    for (let ch = 0; ch < numCh; ch++) { v.setFloat32(off, channels[ch][i], true); off += 4; }
+  const blob = new Blob([buf], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── RESIZE ────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  drawPad();
+  drawWaveform('wave-result', computePreview());
+});
+
+// ── INIT ──────────────────────────────────────────────
+setTimeout(initPad, 50);
+</script>
+</body>
+</html>
