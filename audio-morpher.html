@@ -505,8 +505,7 @@ async function playMorph() {
     if (e.data.type === 'ended') {
       if (isRecording) stopRecord();
       if (workletNode) { workletNode.disconnect(); workletNode = null; }
-      if (lfoActive) { lfoActive = false; stopLfoUI(); }
-      setStoppedUI();
+      if (!lfoActive && !adsrActive) setStoppedUI();
     }
   };
 
