@@ -193,6 +193,8 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <span class="lbl">modo:</span>
       <button class="btn active" id="btn-lfo-ab" onclick="setLfoMode('ab')">A → B</button>
       <button class="btn" id="btn-lfo-ba" onclick="setLfoMode('ba')">B → A</button>
+      <button class="btn" id="btn-lfo-aba" onclick="setLfoMode('aba')">A → B → A</button>
+      <button class="btn" id="btn-lfo-bab" onclick="setLfoMode('bab')">B → A → B</button>
     </div>
 
     <div class="row">
@@ -276,7 +278,6 @@ let lfoActive = false;
 let lfoMode = 'ab';
 let lfoSpeedMult = 1.0; // 1.0 = synced to sample, 2.0 = double speed, 0.5 = half speed
 let lfoPhase = 0;
-let lfoDirection = 1;
 let lfoRafId = null;
 let lfoLastTime = null;
 let lfoEnvelope = 'linear';
@@ -623,11 +624,8 @@ function drawLfoViz() {
     let val;
     if (lfoMode === 'ab') val = applyEnvelope(p);
     else if (lfoMode === 'ba') val = 1 - applyEnvelope(p);
-    else if (lfoMode === 'ping') {
-      val = p < 0.5 ? applyEnvelope(p * 2) : 1 - applyEnvelope((p - 0.5) * 2);
-    } else { // pong: starts at B (1), goes to A (0), returns to B (1)
-      val = p < 0.5 ? 1 - applyEnvelope(p * 2) : applyEnvelope((p - 0.5) * 2);
-    }
+    else if (lfoMode === 'aba') val = p < 0.5 ? applyEnvelope(p * 2) : 1 - applyEnvelope((p - 0.5) * 2);
+    else /* bab */             val = p < 0.5 ? 1 - applyEnvelope(p * 2) : applyEnvelope((p - 0.5) * 2);
     const px = (x / steps) * W;
     const py = H - val * H * 0.85 - H * 0.075;
     if (x === 0) c.moveTo(px, py); else c.lineTo(px, py);
@@ -635,9 +633,7 @@ function drawLfoViz() {
   c.stroke();
 
   if (lfoActive) {
-    let markerPhase = lfoPhase;
-    if (lfoMode === 'ping') markerPhase = lfoDirection > 0 ? lfoPhase * 0.5 : 1 - lfoPhase * 0.5;
-    const mx = markerPhase * W;
+    const mx = lfoPhase * W;
     c.beginPath(); c.strokeStyle = '#a07ad0'; c.lineWidth = 1;
     c.moveTo(mx, 0); c.lineTo(mx, H); c.stroke();
   }
@@ -653,8 +649,8 @@ function getLfoDuration() {
 
 function setLfoMode(mode) {
   lfoMode = mode;
-  ['ab','ba'].forEach(m => document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode));
-  if (lfoActive) { lfoPhase = 0; lfoDirection = 1; }
+  ['ab','ba','aba','bab'].forEach(m => document.getElementById('btn-lfo-' + m).classList.toggle('active', m === mode));
+  if (lfoActive) { lfoPhase = 0; }
   drawLfoViz();
 }
 
@@ -673,7 +669,7 @@ async function toggleLfo() {
     lfoElapsed = 0;
     lfoLastTime = null;
     lfoPhase = 0;
-    const startPos = lfoMode === 'ba' ? 100 : 0;
+    const startPos = (lfoMode === 'ba' || lfoMode === 'bab') ? 100 : 0;
     setMorphPos(startPos);
     if (!workletNode) await playMorph();
     lfoRafId = requestAnimationFrame(lfoTick);
@@ -695,7 +691,8 @@ function lfoTick(ts) {
   const dur = getLfoDuration();
 
   if (lfoElapsed >= dur) {
-    setMorphPos(lfoMode === 'ba' ? 0 : 100);
+    const endPos = (lfoMode === 'ab' || lfoMode === 'aba') ? 0 : 100;
+    setMorphPos(endPos);
     lfoActive = false;
     stopLfoUI();
     return;
@@ -703,9 +700,19 @@ function lfoTick(ts) {
 
   const phase = lfoElapsed / dur;
   lfoPhase = phase;
-  const pos = lfoMode === 'ba'
-    ? Math.round((1 - applyEnvelope(phase)) * 100)
-    : Math.round(applyEnvelope(phase) * 100);
+
+  let pos;
+  if (lfoMode === 'ab') {
+    pos = Math.round(applyEnvelope(phase) * 100);
+  } else if (lfoMode === 'ba') {
+    pos = Math.round((1 - applyEnvelope(phase)) * 100);
+  } else if (lfoMode === 'aba') {
+    const p2 = phase < 0.5 ? applyEnvelope(phase * 2) : 1 - applyEnvelope((phase - 0.5) * 2);
+    pos = Math.round(p2 * 100);
+  } else { // bab
+    const p2 = phase < 0.5 ? 1 - applyEnvelope(phase * 2) : applyEnvelope((phase - 0.5) * 2);
+    pos = Math.round(p2 * 100);
+  }
   setMorphPos(pos);
 
   drawLfoViz();
@@ -1101,12 +1108,17 @@ async function exportLfo() {
 
   const smoothTime = envSmoothTime;
   const coeff = 1 - Math.exp(-1 / (sr * smoothTime));
-  const startV = lfoMode === 'ba' ? 1 : 0;
+  const startV = (lfoMode === 'ba' || lfoMode === 'bab') ? 1 : 0;
   let vSmooth = startV;
 
   for (let i = 0; i < totalFrames; i++) {
     const phase = i / (totalFrames - 1);
-    const vTarget = lfoMode === 'ba' ? 1 - applyEnvelope(phase) : applyEnvelope(phase);
+    let vTarget;
+    if (lfoMode === 'ab') vTarget = applyEnvelope(phase);
+    else if (lfoMode === 'ba') vTarget = 1 - applyEnvelope(phase);
+    else if (lfoMode === 'aba') vTarget = phase < 0.5 ? applyEnvelope(phase * 2) : 1 - applyEnvelope((phase - 0.5) * 2);
+    else /* bab */             vTarget = phase < 0.5 ? 1 - applyEnvelope(phase * 2) : applyEnvelope((phase - 0.5) * 2);
+
     vSmooth += (vTarget - vSmooth) * coeff;
     const v = vSmooth;
 
