@@ -1061,6 +1061,7 @@ function stopAdsr() {
   document.getElementById('btn-adsr-toggle').textContent = '▶ disparar envolvente';
   document.getElementById('btn-adsr-toggle').classList.remove('lfo-on');
   document.getElementById('adsr-phase-label').textContent = '···';
+  if (!workletNode) setStoppedUI();
   drawAdsrViz();
 }
 
