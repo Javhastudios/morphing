@@ -172,7 +172,7 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <button class="btn" onclick="invertEnvelope()">↕ invertir</button>
       <button class="btn" id="btn-adsr-toggle" onclick="toggleAdsr()">▶ disparar envolvente</button>
       <button class="btn" id="btn-env-export" onclick="exportEnvelope()" disabled>↓ exportar WAV</button>
-      <span class="lbl" id="adsr-phase-label" style="color:#666;">—</span>
+      <span class="lbl" id="adsr-phase-label" style="color:#666;">···</span>
     </div>
     <div class="row">
       <span class="lbl">suavizado:</span>
@@ -1020,7 +1020,7 @@ function stopAdsr() {
   if (adsrRafId) { cancelAnimationFrame(adsrRafId); adsrRafId = null; }
   document.getElementById('btn-adsr-toggle').textContent = '▶ disparar envolvente';
   document.getElementById('btn-adsr-toggle').classList.remove('lfo-on');
-  document.getElementById('adsr-phase-label').textContent = '—';
+  document.getElementById('adsr-phase-label').textContent = '···';
   drawAdsrViz();
 }
 
