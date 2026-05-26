@@ -775,6 +775,8 @@ function encodeWav(channels, sampleRate) {
 
 // ── PRESETS ───────────────────────────────────────────
 function savePreset() {
+  const name = prompt('Nombre del preset:', 'morph-preset');
+  if (name === null) return; // cancelado
   const preset = {
     morphPos, loopEnabled, durationMode, stretchMaster,
     gainA, gainB, lfoMode, lfoEnvelope,
@@ -783,7 +785,7 @@ function savePreset() {
   const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'morph-preset.json'; a.click();
+  a.href = url; a.download = (name.trim() || 'morph-preset') + '.json'; a.click();
   URL.revokeObjectURL(url);
 }
 
