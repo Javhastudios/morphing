@@ -1059,7 +1059,7 @@ async function exportEnvelope() {
     const targetFrames = durationMode === 'morph'
       ? Math.round(frA * (1 - v) + frB * v)
       : Math.max(frA, frB);
-    const norm = targetFrames > 1 ? (i % targetFrames) / (targetFrames - 1) : 0;
+    const norm = targetFrames > 1 ? Math.min(i / (targetFrames - 1), 1) : 0;
     L[i] = getSampleVal(samples.a.data, norm, 0, frA) * gainA * (1 - v)
           + getSampleVal(samples.b.data, norm, 0, frB) * gainB * v;
     R[i] = getSampleVal(samples.a.data, norm, 1, frA) * gainA * (1 - v)
