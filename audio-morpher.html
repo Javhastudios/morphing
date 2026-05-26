@@ -208,6 +208,13 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
     <div class="lfo-viz"><canvas class="lfo-canvas" id="lfo-canvas"></canvas></div>
 
     <div class="row">
+      <span class="lbl" style="min-width:60px;">más lento</span>
+      <input type="range" class="lfo-slider" id="lfo-speed" min="-2" max="2" step="0.01" value="0" oninput="setLfoSpeed(this.value)">
+      <span class="lbl" style="min-width:60px; text-align:right;">más rápido</span>
+      <span class="lfo-unit" id="lfo-speed-val" style="min-width:36px; text-align:right;">1x</span>
+    </div>
+
+    <div class="row">
       <button class="btn" id="btn-lfo-toggle" onclick="toggleLfo()">▶ iniciar barrido</button>
       <button class="btn" id="btn-lfo-export" onclick="exportLfo()" disabled>↓ exportar WAV</button>
     </div>
@@ -276,7 +283,7 @@ async function previewSample(id) {
 // LFO
 let lfoActive = false;
 let lfoMode = 'ab';
-let lfoSpeedMult = 1.0; // 1.0 = synced to sample, 2.0 = double speed, 0.5 = half speed
+let lfoSpeedMult = 1.0; // multiplicador de velocidad del barrido
 let lfoPhase = 0;
 let lfoRafId = null;
 let lfoLastTime = null;
@@ -639,12 +646,22 @@ function drawLfoViz() {
   }
 }
 
+function setLfoSpeed(val) {
+  // val va de -2 a 2; lo convertimos a multiplicador: 2^val
+  // -2 → 0.25x, 0 → 1x, 2 → 4x
+  lfoSpeedMult = Math.pow(2, parseFloat(val));
+  const display = lfoSpeedMult < 1
+    ? (1 / lfoSpeedMult).toFixed(2).replace(/\.?0+$/, '') + 'x ↙'
+    : lfoSpeedMult.toFixed(2).replace(/\.?0+$/, '') + 'x';
+  document.getElementById('lfo-speed-val').textContent = lfoSpeedMult === 1 ? '1x' : display;
+}
+
 function getLfoDuration() {
-  if (!samples.a && !samples.b) return 2;
-  return Math.max(
+  const base = (!samples.a && !samples.b) ? 2 : Math.max(
     samples.a ? samples.a.duration : 0,
     samples.b ? samples.b.duration : 0
   );
+  return base / lfoSpeedMult;
 }
 
 function setLfoMode(mode) {
