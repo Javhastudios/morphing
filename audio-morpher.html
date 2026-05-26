@@ -206,7 +206,7 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
 
     <div class="row">
       <button class="btn" id="btn-lfo-toggle" onclick="toggleLfo()">▶ iniciar barrido</button>
-      <button class="btn rec-off" id="btn-record" onclick="toggleRecord()" disabled>⏺ grabar</button>
+      <button class="btn" id="btn-lfo-export" onclick="exportLfo()" disabled>↓ exportar WAV</button>
       <button class="btn" id="btn-export" onclick="exportCurrent()" disabled>↓ exportar posición</button>
     </div>
     <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
@@ -283,10 +283,7 @@ let lfoEnvelope = 'linear';
 let lfoElapsed = 0;
 
 // Recording
-let mediaRecorder = null;
-let recordedChunks = [];
 let isRecording = false;
-let recordingDest = null;
 
 const hints = {
   pad:     'el sample corto se rellena con silencio hasta la duración del más largo',
@@ -524,7 +521,7 @@ function checkReady() {
   const ready = samples.a && samples.b;
   document.getElementById('btn-play').disabled = !ready;
   document.getElementById('btn-export').disabled = !ready;
-  document.getElementById('btn-record').disabled = !ready;
+  document.getElementById('btn-lfo-export').disabled = !ready;
   document.getElementById('btn-env-export').disabled = !ready;
   if (ready) {
     document.getElementById('status-dot').className = 'dot ready';
@@ -720,41 +717,6 @@ function stopLfoUI() {
   document.getElementById('btn-lfo-toggle').classList.remove('lfo-on');
   lfoRafId = null;
   drawLfoViz();
-}
-
-// ── RECORDING ─────────────────────────────────────────
-async function toggleRecord() {
-  if (isRecording) { stopRecord(); return; }
-  const ctx = await getAudioContext();
-  recordingDest = ctx.createMediaStreamDestination();
-  recordedChunks = [];
-  mediaRecorder = new MediaRecorder(recordingDest.stream);
-  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-  mediaRecorder.onstop = () => downloadRecording();
-  mediaRecorder.start();
-  isRecording = true;
-  document.getElementById('btn-record').textContent = '■ detener grabación';
-  document.getElementById('btn-record').classList.add('rec-on');
-  document.getElementById('status-dot').className = 'dot rec';
-  document.getElementById('status-text').textContent = 'grabando...';
-  if (!workletNode) await playMorph();
-  else if (workletNode) workletNode.connect(recordingDest);
-  if (!lfoActive) toggleLfo();
-}
-
-function stopRecord() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  isRecording = false;
-  document.getElementById('btn-record').textContent = '⏺ grabar';
-  document.getElementById('btn-record').classList.remove('rec-on');
-}
-
-function downloadRecording() {
-  const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'morph-recording.webm'; a.click();
-  URL.revokeObjectURL(url);
 }
 
 // ── EXPORT CURRENT ────────────────────────────────────
@@ -1121,6 +1083,44 @@ async function exportEnvelope() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'morph-envelope.wav'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportLfo() {
+  if (!samples.a || !samples.b) return;
+  const sr = Math.max(samples.a.sampleRate, samples.b.sampleRate);
+  const dur = getLfoDuration();
+  const totalFrames = Math.round(dur * sr);
+  const L = new Float32Array(totalFrames);
+  const R = new Float32Array(totalFrames);
+
+  const smoothTime = envSmoothTime;
+  const coeff = 1 - Math.exp(-1 / (sr * smoothTime));
+  const startV = lfoMode === 'ba' ? 1 : 0;
+  let vSmooth = startV;
+
+  for (let i = 0; i < totalFrames; i++) {
+    const phase = i / (totalFrames - 1);
+    const vTarget = lfoMode === 'ba' ? 1 - applyEnvelope(phase) : applyEnvelope(phase);
+    vSmooth += (vTarget - vSmooth) * coeff;
+    const v = vSmooth;
+
+    const frA = samples.a.frames, frB = samples.b.frames;
+    const targetFrames = durationMode === 'morph'
+      ? Math.round(frA * (1 - v) + frB * v)
+      : Math.max(frA, frB);
+    const norm = targetFrames > 1 ? Math.min(i / (targetFrames - 1), 1) : 0;
+    L[i] = getSampleVal(samples.a.data, norm, 0, frA) * gainA * (1 - v)
+          + getSampleVal(samples.b.data, norm, 0, frB) * gainB * v;
+    R[i] = getSampleVal(samples.a.data, norm, 1, frA) * gainA * (1 - v)
+          + getSampleVal(samples.b.data, norm, 1, frB) * gainB * v;
+  }
+
+  const wav = encodeWav32([L, R], sr);
+  const blob = new Blob([wav], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'morph-barrido.wav'; a.click();
   URL.revokeObjectURL(url);
 }
 
