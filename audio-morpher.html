@@ -777,7 +777,8 @@ function encodeWav(channels, sampleRate) {
 function savePreset() {
   const preset = {
     morphPos, loopEnabled, durationMode, stretchMaster,
-    gainA, gainB, lfoMode, lfoHz, lfoEnvelope
+    gainA, gainB, lfoMode, lfoEnvelope,
+    envPoints, envSmoothTime
   };
   const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -799,8 +800,9 @@ function loadPreset(input) {
       if (p.stretchMaster) setStretchMaster(p.stretchMaster);
       if (p.loopEnabled !== undefined) { loopEnabled = p.loopEnabled; const btn = document.getElementById('btn-loop'); btn.classList.toggle('loop-on', loopEnabled); btn.textContent = loopEnabled ? '⟳ loop on' : '⟳ loop'; }
       if (p.lfoMode) setLfoMode(p.lfoMode);
-      if (p.lfoHz !== undefined) setLfoHz(p.lfoHz);
       if (p.lfoEnvelope) setEnvelope(p.lfoEnvelope);
+      if (p.envPoints) { envPoints = p.envPoints; drawAdsrViz(); }
+      if (p.envSmoothTime !== undefined) { envSmoothTime = p.envSmoothTime; document.getElementById('env-smooth').value = envSmoothTime; document.getElementById('env-smooth-val').textContent = Math.round(envSmoothTime * 1000) + 'ms'; }
       if (p.morphPos !== undefined) setMorphPos(p.morphPos);
     } catch(err) { alert('Error al cargar preset: ' + err.message); }
   };
