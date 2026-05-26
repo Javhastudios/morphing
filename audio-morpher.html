@@ -221,6 +221,14 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
     <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
   </div>
 
+  <!-- FFT SECTION -->
+  <div class="section">
+    <div class="section-title">análisis espectral</div>
+    <div style="height:120px; border-radius:8px; background:#111; border:0.5px solid #2a2a2a; overflow:hidden;">
+      <canvas id="fft-canvas" style="width:100%; height:100%; display:block;"></canvas>
+    </div>
+  </div>
+
   <!-- PRESETS SECTION -->
   <div class="section">
     <div class="section-title">presets</div>
@@ -1200,6 +1208,84 @@ function getSampleVal(data, norm, ch, frames) {
 drawLfoViz();
 drawAdsrViz();
 setTimeout(initEnvCanvas, 100);
+
+// ── FFT ───────────────────────────────────────────────
+let analyserNode = null;
+let fftRafId = null;
+
+function initAnalyser(ctx) {
+  if (analyserNode) return analyserNode;
+  analyserNode = ctx.createAnalyser();
+  analyserNode.fftSize = 2048;
+  analyserNode.smoothingTimeConstant = 0.8;
+  analyserNode.connect(ctx.destination);
+  startFftDraw();
+  return analyserNode;
+}
+
+function startFftDraw() {
+  if (fftRafId) return;
+  function draw() {
+    fftRafId = requestAnimationFrame(draw);
+    drawFft();
+  }
+  draw();
+}
+
+function drawFft() {
+  const canvas = document.getElementById('fft-canvas');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const c = canvas.getContext('2d');
+  c.scale(dpr, dpr);
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  c.clearRect(0, 0, W, H);
+
+  if (!analyserNode) {
+    // sin audio: línea plana en el fondo
+    c.beginPath(); c.strokeStyle = '#333'; c.lineWidth = 1;
+    c.moveTo(0, H - 4); c.lineTo(W, H - 4); c.stroke();
+    return;
+  }
+
+  const bufLen = analyserNode.frequencyBinCount;
+  const dataArray = new Uint8Array(bufLen);
+  analyserNode.getByteFrequencyData(dataArray);
+
+  const nyquist = (audioCtx ? audioCtx.sampleRate : 44100) / 2;
+  const minHz = 20, maxHz = nyquist;
+  const logMin = Math.log10(minHz), logMax = Math.log10(maxHz);
+
+  c.beginPath();
+  c.strokeStyle = '#7a50b0';
+  c.lineWidth = 1.5;
+
+  for (let x = 0; x < W; x++) {
+    const logF = logMin + (x / W) * (logMax - logMin);
+    const hz = Math.pow(10, logF);
+    const binIdx = Math.round((hz / nyquist) * bufLen);
+    const val = (dataArray[Math.min(binIdx, bufLen - 1)] || 0) / 255;
+    const y = H - val * H * 0.92 - H * 0.04;
+    x === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+  }
+  c.stroke();
+
+  // línea base
+  c.beginPath(); c.strokeStyle = '#2a2a2a'; c.lineWidth = 0.5;
+  c.moveTo(0, H - 1); c.lineTo(W, H - 1); c.stroke();
+}
+
+// conectar el analyser cuando se crea el worklet
+const _origPlayMorph = playMorph;
+playMorph = async function() {
+  await _origPlayMorph.apply(this, arguments);
+  if (audioCtx && workletNode) {
+    const an = initAnalyser(audioCtx);
+    workletNode.connect(an);
+  }
+};
 </script>
 </body>
 </html>
