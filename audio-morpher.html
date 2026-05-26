@@ -160,6 +160,22 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
     </div>
   </div>
 
+  <!-- ENVELOPE SECTION -->
+  <div class="section">
+    <div class="section-title">envolvente del crossfade</div>
+    <div class="adsr-viz" style="height:120px; cursor:crosshair;">
+      <canvas class="adsr-canvas" id="adsr-canvas" style="width:100%;height:100%;display:block;"></canvas>
+    </div>
+    <div class="row" style="margin-top:0.75rem;">
+      <span class="lbl">duración total: <strong id="env-duration">2.00s</strong></span>
+      <button class="btn" onclick="resetEnvelope()">↺ reset</button>
+      <button class="btn" id="btn-adsr-toggle" onclick="toggleAdsr()">▶ disparar envolvente</button>
+      <button class="btn" id="btn-env-export" onclick="exportEnvelope()" disabled>↓ exportar WAV</button>
+      <span class="lbl" id="adsr-phase-label" style="color:#666;">—</span>
+    </div>
+    <p class="hint">clic para añadir punto · doble clic para borrar · arrastrar para mover · el punto más a la derecha define la duración</p>
+  </div>
+
   <!-- LFO SECTION -->
   <div class="section">
     <div class="section-title">barrido automático</div>
@@ -186,21 +202,6 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <button class="btn" id="btn-export" onclick="exportCurrent()" disabled>↓ exportar posición</button>
     </div>
     <p class="hint" id="hint-text">al iniciar el barrido, la reproducción arranca automáticamente</p>
-  </div>
-
-  <!-- ENVELOPE SECTION -->
-  <div class="section">
-    <div class="section-title">envolvente del crossfade</div>
-    <div class="adsr-viz" style="height:120px; cursor:crosshair;">
-      <canvas class="adsr-canvas" id="adsr-canvas" style="width:100%;height:100%;display:block;"></canvas>
-    </div>
-    <div class="row" style="margin-top:0.75rem;">
-      <span class="lbl">duración total: <strong id="env-duration">2.00s</strong></span>
-      <button class="btn" onclick="resetEnvelope()">↺ reset</button>
-      <button class="btn" id="btn-adsr-toggle" onclick="toggleAdsr()">▶ disparar envolvente</button>
-      <span class="lbl" id="adsr-phase-label" style="color:#666;">—</span>
-    </div>
-    <p class="hint">clic para añadir punto · doble clic para borrar · arrastrar para mover · el punto más a la derecha define la duración</p>
   </div>
 
   <!-- PRESETS SECTION -->
@@ -478,6 +479,7 @@ function checkReady() {
   document.getElementById('btn-play').disabled = !ready;
   document.getElementById('btn-export').disabled = !ready;
   document.getElementById('btn-record').disabled = !ready;
+  document.getElementById('btn-env-export').disabled = !ready;
   if (ready) {
     document.getElementById('status-dot').className = 'dot ready';
     document.getElementById('status-text').textContent = 'listo';
@@ -1020,6 +1022,75 @@ function adsrTick(ts) {
   document.getElementById('adsr-phase-label').textContent = adsrElapsed.toFixed(2) + 's';
   drawAdsrViz();
   adsrRafId = requestAnimationFrame(adsrTick);
+}
+
+async function exportEnvelope() {
+  if (!samples.a || !samples.b) return;
+  const sr = Math.max(samples.a.sampleRate, samples.b.sampleRate);
+  const dur = envDuration();
+  const totalFrames = Math.round(dur * sr);
+  const L = new Float32Array(totalFrames);
+  const R = new Float32Array(totalFrames);
+
+  for (let i = 0; i < totalFrames; i++) {
+    const elapsed = i / sr;
+    const v = getEnvValueAt(elapsed);
+    const frA = samples.a.frames, frB = samples.b.frames;
+    const targetFrames = durationMode === 'morph'
+      ? Math.round(frA * (1 - v) + frB * v)
+      : Math.max(frA, frB);
+    const norm = targetFrames > 1 ? (i % targetFrames) / (targetFrames - 1) : 0;
+    L[i] = getSampleVal(samples.a.data, norm, 0, frA) * gainA * (1 - v)
+          + getSampleVal(samples.b.data, norm, 0, frB) * gainB * v;
+    R[i] = getSampleVal(samples.a.data, norm, 1, frA) * gainA * (1 - v)
+          + getSampleVal(samples.b.data, norm, 1, frB) * gainB * v;
+  }
+
+  const wav = encodeWav32([L, R], sr);
+  const blob = new Blob([wav], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'morph-envelope.wav'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function encodeWav32(channels, sampleRate) {
+  const numCh = channels.length;
+  const numSamples = channels[0].length;
+  const bytesPerSample = 4;
+  const buffer = new ArrayBuffer(44 + numSamples * numCh * bytesPerSample);
+  const view = new DataView(buffer);
+  const write = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * numCh * bytesPerSample, true);
+  write(8, 'WAVE'); write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 3, true); // IEEE float
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numCh * bytesPerSample, true);
+  view.setUint16(32, numCh * bytesPerSample, true);
+  view.setUint16(34, 32, true);
+  write(36, 'data');
+  view.setUint32(40, numSamples * numCh * bytesPerSample, true);
+  let off = 44;
+  for (let i = 0; i < numSamples; i++) {
+    for (let ch = 0; ch < numCh; ch++) {
+      view.setFloat32(off, channels[ch][i], true);
+      off += 4;
+    }
+  }
+  return buffer;
+}
+
+function getSampleVal(data, norm, ch, frames) {
+  const offset = ch * frames;
+  const pos = norm * (frames - 1);
+  const idx = Math.floor(pos);
+  const frac = pos - idx;
+  const v0 = data[offset + idx] || 0;
+  const v1 = data[offset + Math.min(idx + 1, frames - 1)] || 0;
+  return v0 + frac * (v1 - v0);
 }
 
 drawLfoViz();
