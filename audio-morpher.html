@@ -945,7 +945,10 @@ function updateEnvSmooth(val) {
 }
 
 function resetEnvelope() {
-  envPoints = [{ t: 0, v: 0 }, { t: 2, v: 0 }];
+  const dur = (samples.a || samples.b)
+    ? Math.max(samples.a ? samples.a.duration : 0, samples.b ? samples.b.duration : 0)
+    : 2;
+  envPoints = [{ t: 0, v: 0 }, { t: dur, v: 0 }];
   drawAdsrViz();
 }
 
