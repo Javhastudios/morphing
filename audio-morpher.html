@@ -963,7 +963,11 @@ function initEnvCanvas() {
   canvas.addEventListener('mousemove', e => {
     if (envDragging === null) return;
     const { t, v } = envCanvasCoords(canvas, e);
-    envPoints[envDragging].t = Math.max(0, t);
+    const maxDur = Math.max(
+      samples.a ? samples.a.duration : Infinity,
+      samples.b ? samples.b.duration : Infinity
+    );
+    envPoints[envDragging].t = Math.max(0, Math.min(t, maxDur));
     envPoints[envDragging].v = v;
     drawAdsrViz();
   });
