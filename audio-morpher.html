@@ -173,6 +173,11 @@ canvas.adsr-canvas { width: 100%; height: 100%; display: block; }
       <button class="btn" id="btn-env-export" onclick="exportEnvelope()" disabled>↓ exportar WAV</button>
       <span class="lbl" id="adsr-phase-label" style="color:#666;">—</span>
     </div>
+    <div class="row">
+      <span class="lbl">suavizado:</span>
+      <input type="range" class="lfo-slider" id="env-smooth" min="0" max="0.5" step="0.001" value="0.15" oninput="updateEnvSmooth(this.value)">
+      <span class="lfo-unit" id="env-smooth-val">150ms</span>
+    </div>
     <p class="hint">clic para añadir punto · doble clic para borrar · arrastrar para mover · el punto más a la derecha define la duración</p>
   </div>
 
@@ -502,6 +507,7 @@ async function playMorph() {
   workletNode.port.postMessage({ type: 'gainA', value: gainA });
   workletNode.port.postMessage({ type: 'gainB', value: gainB });
   workletNode.port.postMessage({ type: 'loop', value: loopEnabled });
+  workletNode.port.postMessage({ type: 'smoothTime', value: envSmoothTime });
   workletNode.port.postMessage({ type: 'play' });
   workletNode.port.onmessage = (e) => {
     if (e.data.type === 'ended') {
@@ -811,6 +817,7 @@ window.addEventListener('resize', () => {
 let envPoints = [ { t: 0, v: 0 }, { t: 2, v: 0 } ]; // t=seconds, v=0-1 crossfade
 let envDragging = null;
 let adsrActive = false;
+let envSmoothTime = 0.15;
 let adsrRafId = null;
 let adsrLastTime = null;
 let adsrElapsed = 0;
@@ -930,6 +937,12 @@ function getEnvValueAt(t) {
   return 0;
 }
 
+function updateEnvSmooth(val) {
+  envSmoothTime = parseFloat(val);
+  document.getElementById('env-smooth-val').textContent = Math.round(envSmoothTime * 1000) + 'ms';
+  if (workletNode) workletNode.port.postMessage({ type: 'smoothTime', value: envSmoothTime });
+}
+
 function resetEnvelope() {
   envPoints = [{ t: 0, v: 0 }, { t: 2, v: 0 }];
   drawAdsrViz();
@@ -1032,9 +1045,16 @@ async function exportEnvelope() {
   const L = new Float32Array(totalFrames);
   const R = new Float32Array(totalFrames);
 
+  const smoothTime = envSmoothTime;
+  const coeff = 1 - Math.exp(-1 / (sr * smoothTime));
+  let vSmooth = getEnvValueAt(0);
+
   for (let i = 0; i < totalFrames; i++) {
     const elapsed = i / sr;
-    const v = getEnvValueAt(elapsed);
+    const vTarget = getEnvValueAt(elapsed);
+    vSmooth += (vTarget - vSmooth) * coeff;
+    const v = vSmooth;
+
     const frA = samples.a.frames, frB = samples.b.frames;
     const targetFrames = durationMode === 'morph'
       ? Math.round(frA * (1 - v) + frB * v)
